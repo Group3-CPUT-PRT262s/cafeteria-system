@@ -205,3 +205,16 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# SQLite database — each developer has their own local copy
+*.db
+*.sqlite3
+
+# Flask environment file
+.env
+
+# VS Code workspace settings
+.vscode/
+
+# macOS
+.DS_Store
