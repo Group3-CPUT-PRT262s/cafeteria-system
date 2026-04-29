@@ -1,68 +1,52 @@
 package com.group3.cafeteria_system.model;
 
-import java.time.LocalTime;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "time_slots")
 public class TimeSlot {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private LocalTime startTime;
+    // The display time — e.g. "12:00", "12:15", "13:30"
+    @Column(name = "slot_time", nullable = false)
+    private String slotTime;
 
-    @Column(nullable = false)
-    private LocalTime endTime;
+    // Whether this slot is currently accepting orders.
+    // Staff can deactivate a slot if it gets too full.
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 
-    @Column(nullable = false)
-    private Boolean isAvailable = true;
-
+    // ── Constructors ──────────────────────────────
     public TimeSlot() {}
 
-    public TimeSlot(LocalTime startTime, LocalTime endTime, Boolean isAvailable) {
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.isAvailable = isAvailable;
+    public TimeSlot(String slotTime) {
+        this.slotTime = slotTime;
+        this.isActive = true;
     }
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
+    // ── Business logic methods ────────────────────
+    public void activate() {
+        this.isActive = true;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void deactivate() {
+        this.isActive = false;
     }
 
-    public LocalTime getStartTime() {
-        return startTime;
+    // ── Getters and Setters ───────────────────────
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getSlotTime() { return slotTime; }
+    public void setSlotTime(String slotTime) {
+        this.slotTime = slotTime;
     }
 
-    public void setStartTime(LocalTime startTime) {
-        this.startTime = startTime;
-    }
-
-    public LocalTime getEndTime() {
-        return endTime;
-    }
-
-    public void setEndTime(LocalTime endTime) {
-        this.endTime = endTime;
-    }
-
-    public Boolean getIsAvailable() {
-        return isAvailable;
-    }
-
-    public void setIsAvailable(Boolean isAvailable) {
-        this.isAvailable = isAvailable;
+    public Boolean getIsActive() { return isActive; }
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 }

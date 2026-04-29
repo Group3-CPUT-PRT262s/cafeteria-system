@@ -1,82 +1,76 @@
 package com.group3.cafeteria_system.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "order_items")
 public class OrderItem {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    // Which order this line item belongs to.
+    // Stored as a plain Long to keep things simple
+    // for the demo phase.
+    @Column(name = "order_id", nullable = false)
+    private Long orderId;
 
-    @ManyToOne
-    @JoinColumn(name = "menu_item_id", nullable = false)
-    private MenuItem menuItem;
+    // Which menu item was ordered.
+    @Column(name = "menu_item_id", nullable = false)
+    private Long menuItemId;
 
+    // How many of this item were ordered.
     @Column(nullable = false)
-    private Integer quantity;
+    private Integer quantity = 1;
 
-    @Column(nullable = false)
-    private Double price; // price at the time of order
+    // Price at the time of ordering.
+    // Stored separately from MenuItem.price because
+    // the menu price might change later — this preserves
+    // the accurate historical record for this order.
+    @Column(name = "item_price", nullable = false)
+    private Double itemPrice;
 
+    // ── Constructors ──────────────────────────────
     public OrderItem() {}
 
-    public OrderItem(Order order, MenuItem menuItem, Integer quantity, Double price) {
-        this.order = order;
-        this.menuItem = menuItem;
+    public OrderItem(Long orderId, Long menuItemId,
+                     Integer quantity, Double itemPrice) {
+        this.orderId = orderId;
+        this.menuItemId = menuItemId;
         this.quantity = quantity;
-        this.price = price;
+        this.itemPrice = itemPrice;
     }
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
+    // ── Business logic methods ────────────────────
+
+    // Calculates the total cost for this line item.
+    // e.g. 2 x Chicken Wrap at R45 = R90
+    public Double getSubtotal() {
+        return itemPrice * quantity;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    // ── Getters and Setters ───────────────────────
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public Long getOrderId() { return orderId; }
+    public void setOrderId(Long orderId) {
+        this.orderId = orderId;
     }
 
-    public Order getOrder() {
-        return order;
+    public Long getMenuItemId() { return menuItemId; }
+    public void setMenuItemId(Long menuItemId) {
+        this.menuItemId = menuItemId;
     }
 
-    public void setOrder(Order order) {
-        this.order = order;
-    }
-
-    public MenuItem getMenuItem() {
-        return menuItem;
-    }
-
-    public void setMenuItem(MenuItem menuItem) {
-        this.menuItem = menuItem;
-    }
-
-    public Integer getQuantity() {
-        return quantity;
-    }
-
+    public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
 
-    public Double getPrice() {
-        return price;
-    }
-
-    public void setPrice(Double price) {
-        this.price = price;
+    public Double getItemPrice() { return itemPrice; }
+    public void setItemPrice(Double itemPrice) {
+        this.itemPrice = itemPrice;
     }
 }
