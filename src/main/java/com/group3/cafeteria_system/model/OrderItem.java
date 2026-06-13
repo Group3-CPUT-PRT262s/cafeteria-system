@@ -6,71 +6,51 @@ import jakarta.persistence.*;
 @Table(name = "order_items")
 public class OrderItem {
 
-    @Id
+    @Id // PK
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long orderItemId;
 
-    // Which order this line item belongs to.
-    // Stored as a plain Long to keep things simple
-    // for the demo phase.
     @Column(name = "order_id", nullable = false)
     private Long orderId;
 
-    // Which menu item was ordered.
     @Column(name = "menu_item_id", nullable = false)
     private Long menuItemId;
 
-    // How many of this item were ordered.
     @Column(nullable = false)
     private Integer quantity = 1;
 
-    // Price at the time of ordering.
-    // Stored separately from MenuItem.price because
-    // the menu price might change later — this preserves
-    // the accurate historical record for this order.
-    @Column(name = "item_price", nullable = false)
-    private Double itemPrice;
+    // Price at time of ordering — preserved even if the menu price changes later
+    @Column(name = "unit_price", nullable = false)
+    private Double unitPrice;
 
-    // ── Constructors ──────────────────────────────
+    // Constructors
     public OrderItem() {}
 
-    public OrderItem(Long orderId, Long menuItemId,
-                     Integer quantity, Double itemPrice) {
+    public OrderItem(Long orderId, Long menuItemId, Integer quantity, Double unitPrice) {
         this.orderId = orderId;
         this.menuItemId = menuItemId;
         this.quantity = quantity;
-        this.itemPrice = itemPrice;
+        this.unitPrice = unitPrice;
     }
 
-    // ── Business logic methods ────────────────────
+    //  Business logic methods
 
-    // Calculates the total cost for this line item.
-    // e.g. 2 x Chicken Wrap at R45 = R90
+    // Computed — not stored in the database
+    // Prevents stale data if quantity or price changes
     public Double getSubtotal() {
-        return itemPrice * quantity;
+        return unitPrice * quantity;
     }
 
-    // ── Getters and Setters ───────────────────────
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
+    // Getters and Setters
+    public Long getOrderItemId() { return orderItemId; }
     public Long getOrderId() { return orderId; }
-    public void setOrderId(Long orderId) {
-        this.orderId = orderId;
-    }
-
     public Long getMenuItemId() { return menuItemId; }
-    public void setMenuItemId(Long menuItemId) {
-        this.menuItemId = menuItemId;
-    }
-
     public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
+    public Double getUnitPrice() { return unitPrice; }
 
-    public Double getItemPrice() { return itemPrice; }
-    public void setItemPrice(Double itemPrice) {
-        this.itemPrice = itemPrice;
-    }
+    public void setOrderItemId(Long orderItemId) {this.orderItemId = orderItemId;}
+    public void setOrderId(Long orderId) {this.orderId = orderId;}
+    public void setMenuItemId(Long menuItemId) {this.menuItemId = menuItemId;}
+    public void setQuantity(Integer quantity) {this.quantity = quantity;}
+    public void setUnitPrice(Double unitPrice) {this.unitPrice = unitPrice;}
 }
