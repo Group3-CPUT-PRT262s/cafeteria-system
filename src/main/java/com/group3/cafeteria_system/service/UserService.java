@@ -52,18 +52,17 @@ public UserService (UserRepository userRepository,  PasswordEncoder passwordEnco
                         new RuntimeException("User not found: " + username));
     }
 
-
-
     // User creation
-    // Simple version for seed data (demo phase)
-//    public User createUser(String username, String rawPassword,
-//                           String role) {
-//        User user = new User();
-//        user.setUsername(username);
-//        user.setPasswordHash(passwordEncoder.encode(rawPassword));
-//        user.setRole(role);
-//        return userRepository.save(user);
-//    } may need to use seeded data for checks/testing, keep blank for now.
+    // Simple version for mock data (demo phase)... resolve later(check the datainitialiser class)
+    public User createUser(String username, String rawPassword,
+                           String role) {
+        User user = new User();
+        user.setUsername(username);
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        user.setRole(role);
+        return userRepository.save(user);
+    }
+//    may need to use seeded data for checks/testing, keep blank for now.
 
     /*
     Full version for registration (Term 3)
