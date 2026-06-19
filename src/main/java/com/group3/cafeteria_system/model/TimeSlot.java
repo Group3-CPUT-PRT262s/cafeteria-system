@@ -1,6 +1,11 @@
 package com.group3.cafeteria_system.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "time_slots")
@@ -36,6 +41,7 @@ public class TimeSlot {
 
     // Getters and Setters
     public Long getTimeSlotId() { return timeSlotId; }
+    public Long getId() { return timeSlotId; }
     public Integer getMaxOrders() { return maxOrders; }
     public Boolean getIsActive() { return isActive; }
     public String getSlotTime() { return slotTime; }

@@ -1,10 +1,21 @@
 package com.group3.cafeteria_system.service;
 
-import com.group3.cafeteria_system.model.*;
-import com.group3.cafeteria_system.repository.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.*;
+
+import com.group3.cafeteria_system.model.CustomerOrder;
+import com.group3.cafeteria_system.model.MenuItem;
+import com.group3.cafeteria_system.model.OrderItem;
+import com.group3.cafeteria_system.model.TimeSlot;
+import com.group3.cafeteria_system.repository.CustomerOrderRepository;
+import com.group3.cafeteria_system.repository.MenuItemRepository;
+import com.group3.cafeteria_system.repository.OrderItemRepository;
+import com.group3.cafeteria_system.repository.TimeSlotRepository;
 
 @Service
 public class OrderService {
@@ -13,12 +24,18 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final MenuItemRepository menuItemRepository;
     private final TimeSlotRepository timeSlotRepository;
+    private final InventoryService inventoryService;
 
-    public OrderService(CustomerOrderRepository customerOrderRepository, OrderItemRepository orderItemRepository, MenuItemRepository menuItemRepository, TimeSlotRepository timeSlotRepository) {
+    public OrderService(CustomerOrderRepository customerOrderRepository,
+                        OrderItemRepository orderItemRepository,
+                        MenuItemRepository menuItemRepository,
+                        TimeSlotRepository timeSlotRepository,
+                        InventoryService inventoryService) {
         this.customerOrderRepository = customerOrderRepository;
         this.orderItemRepository = orderItemRepository;
         this.menuItemRepository = menuItemRepository;
         this.timeSlotRepository = timeSlotRepository;
+        this.inventoryService = inventoryService;
     }
 
     // Place an order
@@ -83,6 +100,7 @@ public class OrderService {
         for (OrderItem item : orderItems) {
             item.setOrderId(savedOrder.getOrderId());
             orderItemRepository.save(item);
+            inventoryService.deductStock(item.getMenuItemId(), item.getQuantity());
         }
 
         return savedOrder;

@@ -3,55 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cafeteria System - Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/css/custom.css" rel="stylesheet">
+    <title>Login | Campus Cafeteria</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
 </head>
-<body class="bg-light">
-    <div class="container">
-        <div class="row justify-content-center mt-5">
-            <div class="col-md-6">
-                <div class="card shadow">
-                    <div class="card-header bg-primary text-white text-center">
-                        <h4>Cafeteria System Login</h4>
+<body>
+<div class="auth-wrapper">
+
+    <!-- ── LEFT: Form ── -->
+    <div class="auth-form-side">
+        <div class="auth-form-container">
+
+            <div class="auth-logo">
+                <div class="logo-icon">CC</div>
+                <span class="logo-text">Campus Cafeteria</span>
+            </div>
+
+            <h1 class="auth-title">Welcome back</h1>
+            <p class="auth-subtitle">
+                Log in to pre-order your meals and skip the queue.
+            </p>
+
+            <div th:if="${successMessage}"
+                 class="alert alert-success" role="alert">
+                <span th:text="${successMessage}"></span>
+            </div>
+
+            <div th:if="${errorMessage}"
+                 class="alert alert-danger" role="alert">
+                <span th:text="${errorMessage}"></span>
+            </div>
+
+            <form th:action="@{/login}" method="post" class="auth-form">
+
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text"
+                           class="form-control form-control-lg"
+                           id="username"
+                           name="username"
+                           placeholder="Enter your username"
+                           required
+                           autofocus>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password"
+                           class="form-control form-control-lg"
+                           id="password"
+                           name="password"
+                           placeholder="••••••••"
+                           required>
+                </div>
+
+                <div class="d-flex justify-content-between
+                            align-items-center mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               id="rememberMe">
+                        <label class="form-check-label small"
+                               for="rememberMe">
+                            Keep me logged in
+                        </label>
                     </div>
-                    <div class="card-body">
-                        <!-- Error Messages -->
-                        <div th:if="${error}" class="alert alert-danger" role="alert">
-                            <span th:text="${error}"></span>
-                        </div>
+                    <a href="#" class="auth-link small">
+                        Forgot password?
+                    </a>
+                </div>
 
-                        <div th:if="${message}" class="alert alert-success" role="alert">
-                            <span th:text="${message}"></span>
-                        </div>
+                <button type="submit"
+                        class="btn btn-primary btn-lg w-100 auth-submit">
+                    Log In
+                </button>
 
-                        <!-- Login Form -->
-                        <form th:action="@{/login}" method="post"> 
-                            <div class="mb-3">
-                                <label for="username" class="form-label">Username</label>
-                                <input type="text" class="form-control" id="username" name="username"
-                                       required autofocus>
-                            </div>
+                <p class="text-center mt-4 mb-0 small text-muted">
+                    Don't have an account?
+                    <a th:href="@{/register}" class="auth-link">
+                        Sign up
+                    </a>
+                </p>
 
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password" name="password"
-                                       required>
-                            </div>
+            </form>
 
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-primary">Login</button>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="card-footer text-center text-muted">
-                        <small>University Cafeteria Management System</small>
-                    </div>
+            <div class="demo-credentials">
+                <p class="demo-label">Demo accounts</p>
+                <p>
+                    student1 / test123 &nbsp;&bull;&nbsp;
+                    staff1 / staff123 &nbsp;&bull;&nbsp;
+                    admin1 / admin123
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── RIGHT: Image panel ── -->
+    <div class="auth-image-side">
+        <div class="auth-image-bg"></div>
+        <div class="auth-image-overlay"></div>
+
+        <div class="auth-image-badge">
+            Ordering now open
+        </div>
+
+        <div class="auth-image-content">
+            <h2>Skip the queue.<br>Order ahead.</h2>
+            <p>
+                Browse today's menu, pre-order your meal,
+                and collect it at a time that suits your schedule.
+                No waiting. No surprises.
+            </p>
+            <div class="auth-stats">
+                <div class="auth-stat">
+                    <span class="auth-stat-number">7</span>
+                    <span class="auth-stat-label">Pickup slots</span>
+                </div>
+                <div class="auth-stat">
+                    <span class="auth-stat-number">~3</span>
+                    <span class="auth-stat-label">Min to order</span>
+                </div>
+                <div class="auth-stat">
+                    <span class="auth-stat-number">0</span>
+                    <span class="auth-stat-label">Queue time</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</div>
 </body>
 </html>

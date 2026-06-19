@@ -1,12 +1,13 @@
 package com.group3.cafeteria_system.service;
 
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+
 import com.group3.cafeteria_system.model.Inventory;
 import com.group3.cafeteria_system.model.MenuItem;
 import com.group3.cafeteria_system.repository.InventoryRepository;
 import com.group3.cafeteria_system.repository.MenuItemRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import java.util.Optional;
 
 @Service
 public class InventoryService {
@@ -47,7 +48,7 @@ public class InventoryService {
                 .orElseThrow(() ->
                         new RuntimeException("Menu item not found: " + menuItemId));
 
-        item.setStatus(inventory.derivedStatus()); // check
+        item.setStatus(inventory.stockLevels());
         menuItemRepository.save(item);
     }
 
@@ -66,7 +67,7 @@ public class InventoryService {
                 .orElseThrow(() ->
                         new RuntimeException("Menu item not found: " + menuItemId));
 
-        item.setStatus(inventory.derivedStatus()); // make method and check/test
+        item.setStatus(inventory.stockLevels());
         menuItemRepository.save(item);
 
         return saved;

@@ -1,7 +1,14 @@
 package com.group3.cafeteria_system.model;
 
 import java.time.LocalDateTime;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 
 @Entity 
 /* this tells Spring this class maps to a database table. JPA will create the table automatically on startup.
@@ -59,6 +66,7 @@ public class MenuItem {
     // Getters
 
     public Long getMenuItemId() { return menuItemId; }
+    public Long getId() { return menuItemId; }
     public Long getCategoryId() { return categoryId; }
     public String getItemName() { return itemName; }
     public String getDescription() { return description; }
@@ -81,7 +89,7 @@ public class MenuItem {
     // Business logic methods
     // Item is available if active AND not sold out
     public boolean isAvailable() {
-        return isActive && !status.equals("Sold Out");
+        return Boolean.TRUE.equals(isActive) && status != null && !status.equals("Sold Out");
     }
 
     // Soft delete — hides from students, preserves historical order records

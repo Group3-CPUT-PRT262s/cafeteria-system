@@ -1,6 +1,5 @@
 package com.group3.cafeteria_system.config;
 
-import com.group3.cafeteria_system.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +10,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+
+import com.group3.cafeteria_system.service.UserService;
 
 @Configuration
 @EnableWebSecurity
@@ -44,7 +45,7 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/css/**", "/js/**",
+                        .requestMatchers("/login", "/register", "/css/**", "/js/**",
                                 "/images/**", "/h2-console/**").permitAll()
                         .requestMatchers("/staff/**")
                         .hasAnyRole("STAFF", "ADMIN")
@@ -54,7 +55,7 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
-                        .defaultSuccessUrl("/menu", true)
+                        .defaultSuccessUrl("/dashboard", true)
                         .failureUrl("/login?error=true")
                         .permitAll()
                 )
@@ -73,7 +74,8 @@ public class SecurityConfig {
 
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/h2-console/**")
-                );
+                )
+        ;
 
         return http.build();
     }
