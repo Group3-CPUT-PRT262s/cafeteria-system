@@ -6,7 +6,7 @@
 
 body {
     font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    background: #ffffff;
+    background: #941414;
     min-height: 100vh;
 }
 
@@ -23,7 +23,7 @@ body {
     align-items: center;
     justify-content: center;
     padding: 3rem 2rem;
-    background: #ffffff;
+    background: #b90f0f;
 }
 
 .auth-form-container {
@@ -47,7 +47,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
+    color: #8d0808;
     font-size: 1.2rem;
     font-weight: 700;
     letter-spacing: -1px;
@@ -56,7 +56,7 @@ body {
 .logo-text {
     font-size: 1rem;
     font-weight: 600;
-    color: #1F3864;
+    color: #c7412a;
     letter-spacing: 0.5px;
 }
 
@@ -127,7 +127,7 @@ body {
 
 /* Submit button */
 .auth-submit {
-    background: #1F3864;
+    background: #d18228;
     border: none;
     border-radius: 12px;
     padding: 0.78rem;

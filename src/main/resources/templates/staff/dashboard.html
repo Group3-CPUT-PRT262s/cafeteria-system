@@ -1,10 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-light">
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Staff Dashboard</h2>
+            <p class="text-muted">Monitor and manage customer orders.</p>
+        </div>
+        <div>
+            <a class="btn btn-secondary" href="/staff/menu-management">Manage Menu</a>
+            <a class="btn btn-outline-danger" href="/logout">Logout</a>
+        </div>
+    </div>
 
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Orders</h5>
+                    <p class="card-text display-4" th:text="${orders.stream().filter(o -> o.orderStatus == 'Pending').count()}">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Ready for Pickup</h5>
+                    <p class="card-text display-4" th:text="${orders.stream().filter(o -> o.orderStatus == 'Ready').count()}">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Collected</h5>
+                    <p class="card-text display-4" th:text="${orders.stream().filter(o -> o.orderStatus == 'Collected').count()}">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Orders</h5>
+                    <p class="card-text display-4" th:text="${orders.size()}">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mt-5 mb-3">All Orders</h4>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Status</th>
+                <th>Total Amount</th>
+                <th>Ordered At</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="order : ${orders}">
+                <td th:text="'#' + ${order.id}"></td>
+                <td>
+                    <span th:text="${order.orderStatus}" 
+                          th:classappend="${order.orderStatus == 'Pending' ? 'badge bg-warning' : (order.orderStatus == 'Ready' ? 'badge bg-info' : 'badge bg-success')}"></span>
+                </td>
+                <td th:text="'₦' + ${#numbers.formatDecimal(order.totalAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                <td th:text="${#temporals.format(order.orderedAt, 'dd MMM yyyy HH:mm')}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div th:if="${orders.empty}" class="alert alert-info">
+        No orders yet.
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
