@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+
+    <title>Create Account</title>
+
+    <link rel="stylesheet"
+          th:href="@{/css/auth.css}">
+
+
+</head>
+
+<body>
+
+<div class="auth-wrapper">
+
+
+    <!-- LEFT FORM -->
+
+    <div class="auth-panel auth-form-panel">
+
+        <div class="auth-container">
+
+            <div class="auth-logo">
+                <h2>Campus Cafeteria</h2>
+            </div>
+
+            <div class="auth-kicker">
+                Join Today
+            </div>
+
+            <h1 class="auth-title">
+                Create your account
+            </h1>
+
+            <p class="auth-subtitle">
+                Register to start ordering meals online.
+            </p>
+
+            <form th:action="@{/register}"
+                  method="post">
+
+                <div class="form-row">
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            First Name
+                        </label>
+
+                        <input
+                                type="text"
+                                name="firstName"
+                                class="form-control"
+                                required>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label class="form-label">
+                            Last Name
+                        </label>
+
+                        <input
+                                type="text"
+                                name="lastName"
+                                class="form-control"
+                                required>
+
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label class="form-label">
+                        Email Address
+                    </label>
+
+                    <input
+                            type="email"
+                            name="email"
+                            class="form-control"
+                            required>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label class="form-label">
+                        Account Type
+                    </label>
+
+                    <div class="role-selector">
+
+                        <div class="role-option">
+
+                            <input
+                                    type="radio"
+                                    id="student"
+                                    name="role"
+                                    value="STUDENT"
+                                    checked>
+
+                            <label for="student">
+                                Student
+                            </label>
+
+                        </div>
+
+                        <div class="role-option">
+
+                            <input
+                                    type="radio"
+                                    id="staff"
+                                    name="role"
+                                    value="STAFF">
+
+                            <label for="staff">
+                                Staff
+                            </label>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label class="form-label">
+                        Password
+                    </label>
+
+                    <div class="password-wrapper">
+
+                        <input
+                                type="password"
+                                id="regPassword"
+                                class="form-control"
+                                name="password"
+                                required>
+
+                        <button
+                                type="button"
+                                class="password-toggle"
+                                onclick="togglePassword('regPassword')">
+                            👁
+                        </button>
+
+                    </div>
+
+                    <div class="password-strength">
+
+                        <div class="strength-bar">
+                            <div class="strength-fill"></div>
+                        </div>
+
+                        <div class="strength-text">
+                            Password strength
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label class="form-label">
+                        Confirm Password
+                    </label>
+
+                    <input
+                            type="password"
+                            name="confirmPassword"
+                            class="form-control"
+                            required>
+
+                </div>
+
+                <button
+                        type="submit"
+                        class="auth-submit">
+                    Create Account
+                </button>
+
+            </form>
+
+            <div class="auth-divider">
+                OR
+            </div>
+
+            <button class="google-btn">
+                Continue with Google
+            </button>
+
+            <div class="auth-footer">
+
+                Already have an account?
+
+                <a th:href="@{/login}"
+                   class="auth-link">
+                    Sign In
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- RIGHT VISUAL -->
+
+    <div class="auth-panel auth-visual-panel">
+
+        <div class="visual-shape shape-1"></div>
+        <div class="visual-shape shape-2"></div>
+        <div class="visual-shape shape-3"></div>
+
+        <div class="auth-visual-content">
+
+            <div class="auth-badge">
+                New Accounts Welcome
+            </div>
+
+            <h1>
+                Fresh meals.<br>
+                Ready when you are.
+            </h1>
+
+            <p>
+                Join Campus Cafeteria and place
+                orders ahead of time from anywhere
+                on campus.
+            </p>
+
+        </div>
+
+    </div>
+
+<script>
+    function togglePassword(id) {
+        const field = document.getElementById(id);
+
+        field.type =
+            field.type === 'password'
+                ? 'text'
+                : 'password';
+    }
+</script>
+
+</body>
+</html>

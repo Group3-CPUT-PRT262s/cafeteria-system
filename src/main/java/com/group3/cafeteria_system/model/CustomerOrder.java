@@ -1,7 +1,14 @@
 package com.group3.cafeteria_system.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "customer_orders")
@@ -61,6 +68,7 @@ public class CustomerOrder {
 
     // Getters and Setters
     public Long getOrderId() { return orderId; }
+    public Long getId() { return orderId; }
     public Long getUserId() { return userId; }
     public Long getTimeSlotId() { return timeSlotId; }
     public Double getTotalAmount() { return totalAmount; }

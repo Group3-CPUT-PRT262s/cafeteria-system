@@ -8,13 +8,12 @@ import java.util.List;
 @Repository
 public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
 
-    // Find all active items (is_active = true)
-    // Spring generates the SQL from the method name automatically
+    // All active items — what students see
     List<MenuItem> findByIsActiveTrue();
 
-    // Find active items by category
-    List<MenuItem> findByIsActiveTrueAndCategory(String category);
+    // Active items filtered by category (now an ID, not a string)
+    List<MenuItem> findByIsActiveTrueAndCategoryId(Long categoryId);
 
-    // Find active items by status
+    // Active items filtered by status
     List<MenuItem> findByIsActiveTrueAndStatus(String status);
 }

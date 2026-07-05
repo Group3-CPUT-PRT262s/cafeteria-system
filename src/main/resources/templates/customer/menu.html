@@ -29,7 +29,7 @@
                 <option value="" disabled selected>Select pickup time</option>
                 <option th:each="slot : ${timeSlots}"
                         th:value="${slot.id}"
-                        th:text="${slot.startTime} + ' - ' + ${slot.endTime}">
+                        th:text="${slot.slotTime}">
                 </option>
             </select>
         </div>
@@ -40,17 +40,20 @@
                 <tr>
                     <th>Item</th>
                     <th>Description</th>
-                    <th>Category</th>
+                    <th>Status</th>
                     <th>Price</th>
                     <th>Quantity</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr th:each="item : ${menuItems}">
-                    <td th:text="${item.name}"></td>
+                    <td th:text="${item.itemName}"></td>
                     <td th:text="${item.description}"></td>
-                    <td th:text="${item.category}"></td>
-                    <td th:text="${#numbers.formatDecimal(item.price, 1, 'COMMA', 2, 'POINT')}"></td>
+                    <td>
+                        <span th:text="${item.status}" 
+                              th:classappend="${item.status == 'Available' ? 'badge bg-success' : (item.status == 'Low Stock' ? 'badge bg-warning' : 'badge bg-danger')}"></span>
+                    </td>
+                    <td th:text="'R' + ${#numbers.formatDecimal(item.price, 1, 'COMMA', 2, 'POINT')}"></td>
                     <td>
                         <input class="form-control" type="number" min="0" name="quantity_${item.id}" value="0" />
                     </td>

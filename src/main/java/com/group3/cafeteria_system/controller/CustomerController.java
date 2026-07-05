@@ -1,24 +1,16 @@
 package com.group3.cafeteria_system.controller;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import com.group3.cafeteria_system.service.MenuService;
-import com.group3.cafeteria_system.service.OrderService;
-import com.group3.cafeteria_system.service.UserService;
-import com.group3.cafeteria_system.model.MenuItem;
-import com.group3.cafeteria_system.model.Order;
-import com.group3.cafeteria_system.model.User;
+
+import com.group3.cafeteria_system.model.*;
 import com.group3.cafeteria_system.repository.TimeSlotRepository;
+import com.group3.cafeteria_system.service.*;
 
 @Controller
 public class CustomerController {
@@ -75,7 +67,7 @@ public class CustomerController {
         User user = optionalUser.get();
         Map<Long, Integer> itemQuantities = new HashMap<>();
         for (MenuItem menuItem : menuService.getAllActiveItems()) {
-            String quantityParam = params.get("quantity_" + menuItem.getId());
+            String quantityParam = params.get("quantity_" + menuItem.getMenuItemId());
             if (quantityParam == null || quantityParam.isBlank()) {
                 continue;
             }
@@ -83,7 +75,7 @@ public class CustomerController {
             try {
                 int quantity = Integer.parseInt(quantityParam);
                 if (quantity > 0) {
-                    itemQuantities.put(menuItem.getId(), quantity);
+                    itemQuantities.put(menuItem.getMenuItemId(), quantity);
                 }
             } catch (NumberFormatException ignored) {
                 // Skip invalid quantity values
@@ -91,10 +83,10 @@ public class CustomerController {
         }
 
         try {
-            Order order = orderService.placeOrder(user.getUsername(), timeSlotId, itemQuantities);
-            redirectAttributes.addAttribute("success", "Order " + order.getId() + " placed successfully.");
+            CustomerOrder order = orderService.placeOrder(user.getUserId(), timeSlotId, itemQuantities);
+            redirectAttributes.addAttribute("success", "Order " + order.getOrderId() + " placed successfully.");
             return "redirect:/customer/history";
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addAttribute("error", ex.getMessage());
             return "redirect:/customer/menu";
         }
@@ -114,7 +106,8 @@ public class CustomerController {
             return "redirect:/login";
         }
 
-        List<Order> orders = orderService.getOrdersByUser(username);
+        User user = optionalUser.get();
+        List<CustomerOrder> orders = orderService.getOrdersByUser(user.getUserId());
         model.addAttribute("orders", orders);
         model.addAttribute("username", username);
         model.addAttribute("success", success);

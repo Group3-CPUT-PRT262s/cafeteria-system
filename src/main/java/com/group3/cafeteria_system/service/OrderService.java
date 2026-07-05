@@ -1,55 +1,69 @@
 package com.group3.cafeteria_system.service;
 
-import com.group3.cafeteria_system.model.*;
-import com.group3.cafeteria_system.repository.MenuItemRepository;
-import com.group3.cafeteria_system.repository.OrderItemRepository;
-import com.group3.cafeteria_system.repository.OrderRepository;
-import com.group3.cafeteria_system.repository.TimeSlotRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.group3.cafeteria_system.model.CustomerOrder;
+import com.group3.cafeteria_system.model.MenuItem;
+import com.group3.cafeteria_system.model.OrderItem;
+import com.group3.cafeteria_system.model.TimeSlot;
+import com.group3.cafeteria_system.repository.CustomerOrderRepository;
+import com.group3.cafeteria_system.repository.MenuItemRepository;
+import com.group3.cafeteria_system.repository.OrderItemRepository;
+import com.group3.cafeteria_system.repository.TimeSlotRepository;
+
 @Service
 public class OrderService {
 
-    @Autowired
-    private OrderRepository orderRepository;
+    private final CustomerOrderRepository customerOrderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final MenuItemRepository menuItemRepository;
+    private final TimeSlotRepository timeSlotRepository;
+    private final InventoryService inventoryService;
 
-    @Autowired
-    private OrderItemRepository orderItemRepository;
+    public OrderService(CustomerOrderRepository customerOrderRepository,
+                        OrderItemRepository orderItemRepository,
+                        MenuItemRepository menuItemRepository,
+                        TimeSlotRepository timeSlotRepository,
+                        InventoryService inventoryService) {
+        this.customerOrderRepository = customerOrderRepository;
+        this.orderItemRepository = orderItemRepository;
+        this.menuItemRepository = menuItemRepository;
+        this.timeSlotRepository = timeSlotRepository;
+        this.inventoryService = inventoryService;
+    }
 
-    @Autowired
-    private MenuItemRepository menuItemRepository;
-
-    @Autowired
-    private TimeSlotRepository timeSlotRepository;
-
-    // ── Place an order ────────────────────────────
-    // @Transactional means: if anything fails, the whole
-    // operation is rolled back. Nothing gets half-saved.
+    // Place an order
+    // Note: I've replaced the username parameter with userId (Long)
     @Transactional
-    public Order placeOrder(String username, Long timeSlotId,
-                            Map<Long, Integer> cart) {
+    public CustomerOrder placeOrder(Long userId, Long timeSlotId,
+                                    Map<Long, Integer> cart) {
 
-        // Validate cart is not empty
         if (cart == null || cart.isEmpty()) {
-            throw new RuntimeException("Cannot place an empty order.");
+            throw new IllegalArgumentException("Cannot place an empty order."); // null checker exception
         }
 
-        // Validate time slot exists and is active
         TimeSlot slot = timeSlotRepository.findById(timeSlotId)
                 .orElseThrow(() ->
                         new RuntimeException("Time slot not found."));
 
         if (!slot.getIsActive()) {
-            throw new RuntimeException("Selected time slot is no longer available.");
+            throw new IllegalStateException("Selected time slot is no longer available.");
         }
 
-        // Calculate total and build order items
+        // Check the slot hasn't exceeded its max_orders limit
+        List<CustomerOrder> existingOrders =
+                customerOrderRepository.findByTimeSlotId(timeSlotId);
+        if (existingOrders.size() >= slot.getMaxOrders()) {
+            throw new IllegalStateException("Cannot place an order with more than " + slot.getMaxOrders() +
+                    "This time slot is fully booked. Please choose another.");
+        }
+
         double total = 0.0;
         List<OrderItem> orderItems = new ArrayList<>();
 
@@ -61,77 +75,78 @@ public class OrderService {
                     .orElseThrow(() ->
                             new RuntimeException("Menu item not found: " + itemId));
 
-            // Check item is still available
             if (!menuItem.isAvailable()) {
-                throw new RuntimeException(
-                        menuItem.getName() + " is no longer available.");
+                throw new IllegalStateException(
+                        menuItem.getItemName() + " is no longer available.");
             }
 
-            // Calculate line total
             double lineTotal = menuItem.getPrice() * quantity;
             total += lineTotal;
 
-            // Create order item
             OrderItem orderItem = new OrderItem();
             orderItem.setMenuItemId(itemId);
             orderItem.setQuantity(quantity);
-            orderItem.setItemPrice(menuItem.getPrice());
+            orderItem.setUnitPrice(menuItem.getPrice());
             orderItems.add(orderItem);
         }
 
-        // Save the order
-        Order order = new Order();
-        order.setUsername(username);
+        CustomerOrder order = new CustomerOrder();
+        order.setUserId(userId);
         order.setTimeSlotId(timeSlotId);
-        order.setTotalPrice(total);
-        order.setStatus("Pending");
-        Order savedOrder = orderRepository.save(order);
+        order.setTotalAmount(total);
+        order.setOrderStatus("Pending");
+        CustomerOrder savedOrder = customerOrderRepository.save(order);
 
-        // Save each order item linked to the order
         for (OrderItem item : orderItems) {
-            item.setOrderId(savedOrder.getId());
+            item.setOrderId(savedOrder.getOrderId());
             orderItemRepository.save(item);
+            inventoryService.deductStock(item.getMenuItemId(), item.getQuantity());
         }
 
         return savedOrder;
     }
 
-    // ── Retrieval methods ─────────────────────────
+    // Retrieval methods
 
-    // Get a single order by ID (for confirmation page)
-    public Optional<Order> getOrderById(Long id) {
-        return orderRepository.findById(id);
+    public Optional<CustomerOrder> getOrderById(Long id) {
+        return customerOrderRepository.findById(id);
     }
 
-    // Get all orders for a user (for history page)
-    public List<Order> getOrdersByUser(String username) {
-        return orderRepository.findByUsernameOrderByCreatedAtDesc(username);
+    // Now takes userId (Long) instead of username (String)
+    public List<CustomerOrder> getOrdersByUser(Long userId) {
+        return customerOrderRepository.findByUserIdOrderByOrderedAtDesc(userId);
     }
 
-    // Get items belonging to a specific order
     public List<OrderItem> getItemsByOrderId(Long orderId) {
         return orderItemRepository.findByOrderId(orderId);
     }
 
-    // Get all orders grouped by time slot (for staff dashboard)
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+    public List<CustomerOrder> getAllOrders() {
+        return customerOrderRepository.findAll();
     }
 
-    // Get orders for a specific time slot
-    public List<Order> getOrdersByTimeSlot(Long timeSlotId) {
-        return orderRepository.findByTimeSlotId(timeSlotId);
+    public List<CustomerOrder> getOrdersByTimeSlot(Long timeSlotId) {
+        return customerOrderRepository.findByTimeSlotId(timeSlotId);
     }
 
-    // ── Staff order management ────────────────────
+    // Staff order management
 
-    // Update order status (Pending → Ready → Collected)
-    public Order updateOrderStatus(Long orderId, String status) {
-        Order order = orderRepository.findById(orderId)
+    public CustomerOrder updateOrderStatus(Long orderId, String status) {
+        CustomerOrder order = customerOrderRepository.findById(orderId)
                 .orElseThrow(() ->
                         new RuntimeException("Order not found with id: " + orderId));
-        order.setStatus(status);
-        return orderRepository.save(order);
+
+        order.setOrderStatus(status);
+        return customerOrderRepository.save(order);
     }
 
+    // New — uses the advanceStatus() method on CustomerOrder
+    public CustomerOrder advanceOrderStatus(Long orderId) {
+        CustomerOrder order = customerOrderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new RuntimeException("Order not found with id: " + orderId));
+
+        order.advanceStatus();
+        return customerOrderRepository.save(order);
+    }
 }

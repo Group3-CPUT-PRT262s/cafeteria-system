@@ -8,6 +8,6 @@ import java.util.List;
 @Repository
 public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
 
-    // Find only active time slots for the order form dropdown
+    // Find only active time slots for the order form dropdown (to be implemented)
     List<TimeSlot> findByIsActiveTrue();
 }
