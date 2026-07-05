@@ -53,7 +53,7 @@
                         <span th:text="${item.status}" 
                               th:classappend="${item.status == 'Available' ? 'badge bg-success' : (item.status == 'Low Stock' ? 'badge bg-warning' : 'badge bg-danger')}"></span>
                     </td>
-                    <td th:text="'₦' + ${#numbers.formatDecimal(item.price, 1, 'COMMA', 2, 'POINT')}"></td>
+                    <td th:text="'R' + ${#numbers.formatDecimal(item.price, 1, 'COMMA', 2, 'POINT')}"></td>
                     <td>
                         <input class="form-control" type="number" min="0" name="quantity_${item.id}" value="0" />
                     </td>
