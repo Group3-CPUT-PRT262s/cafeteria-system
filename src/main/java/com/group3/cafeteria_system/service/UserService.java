@@ -2,24 +2,30 @@ package com.group3.cafeteria_system.service;
 
 import com.group3.cafeteria_system.model.User;
 import com.group3.cafeteria_system.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.group3.cafeteria_system.model.PasswordResetToken;
+import com.group3.cafeteria_system.repository.PasswordResetTokenRepository;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
 public class UserService implements UserDetailsService {
 
+
+    private final PasswordResetTokenRepository tokenRepository;
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-public UserService (UserRepository userRepository,  PasswordEncoder passwordEncoder) {
+public UserService (UserRepository userRepository, PasswordEncoder passwordEncoder, PasswordResetTokenRepository tokenRepository) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
+    this.tokenRepository = tokenRepository;
 }
-
-
 
     @Override
     public UserDetails loadUserByUsername(String username)
@@ -54,7 +60,7 @@ public UserService (UserRepository userRepository,  PasswordEncoder passwordEnco
 
     // User creation
     // Simple version for mock data (demo phase)... resolve later(check the datainitialiser class)
-    public User createUser(String username, String rawPassword,
+    public User createUser(String username, String rawPassword, // make void later**
                            String role) {
         User user = new User();
         user.setUsername(username);
@@ -91,5 +97,50 @@ public UserService (UserRepository userRepository,  PasswordEncoder passwordEnco
 
     public boolean userExists(String username) {
         return userRepository.existsByUsername(username);
+    }
+
+    // Password Reset method
+    public String generatePasswordResetToken(String email) {
+        // Find user by email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException(
+                        "No account found with that email address."));
+
+        // Remove any existing unused tokens for this user
+        tokenRepository.deleteByUserId(user.getUserId());
+
+        // Generate a unique secure token for the user
+        String token = UUID.randomUUID().toString();
+
+        // Save it
+        tokenRepository.save(
+                new PasswordResetToken(token, user.getUserId()));
+        return token;
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        // Find the token record
+        PasswordResetToken resetToken = tokenRepository
+                .findByToken(token)
+                .orElseThrow(() -> new RuntimeException(
+                        "Invalid or expired reset link."));
+
+        // Validate it
+        if (!resetToken.isValid()) {
+            throw new BadCredentialsException(
+                    "This reset link has expired or has already been used. " + " Please request a new one.");
+        }
+
+        // Update the user's password
+        User user = userRepository
+                .findById(resetToken.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found."));
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Mark token as used — prevents reuse
+        resetToken.setUsed(true);
+        tokenRepository.save(resetToken);
     }
 }
