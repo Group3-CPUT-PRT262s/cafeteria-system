@@ -10,10 +10,24 @@ public class HomeController {
     @GetMapping("/")
     public String home(Authentication authentication) {
         if (authentication != null && authentication.isAuthenticated()) {
-            // User is already logged in, redirect to dashboard
             return "redirect:/dashboard";
         }
-        // User is not logged in, show login page
         return "redirect:/login";
+    }
+
+    @GetMapping("/dashboard")
+    public String dashboard(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/login";
+        }
+
+        boolean isStaff = authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_STAFF")
+                        || auth.getAuthority().equals("ROLE_ADMIN"));
+
+        if (isStaff) {
+            return "redirect:/staff/dashboard";
+        }
+        return "redirect:/customer/menu";
     }
 }

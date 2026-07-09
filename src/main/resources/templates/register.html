@@ -44,8 +44,12 @@
                 Register to start ordering meals online.
             </p>
 
+            <div th:if="${errorMessage}" class="auth-alert auth-alert-danger" th:text="${errorMessage}"></div>
+            <div th:if="${successMessage}" class="auth-alert auth-alert-success" th:text="${successMessage}"></div>
+
             <form th:action="@{/register}"
                   method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 
                 <div class="form-row">
 
@@ -91,46 +95,6 @@
 
                 </div>
 
-                <div class="form-group">
-
-                    <label class="form-label">
-                        Account Type
-                    </label>
-
-                    <div class="role-selector">
-
-                        <div class="role-option">
-
-                            <input
-                                    type="radio"
-                                    id="student"
-                                    name="role"
-                                    value="STUDENT"
-                                    checked>
-
-                            <label for="student">
-                                Student
-                            </label>
-
-                        </div>
-
-                        <div class="role-option">
-
-                            <input
-                                    type="radio"
-                                    id="staff"
-                                    name="role"
-                                    value="STAFF">
-
-                            <label for="staff">
-                                Staff
-                            </label>
-
-                        </div>
-
-                    </div>
-
-                </div>
 
                 <div class="form-group">
 

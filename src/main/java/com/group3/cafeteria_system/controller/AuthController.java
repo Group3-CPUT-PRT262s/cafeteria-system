@@ -1,16 +1,19 @@
 package com.group3.cafeteria_system.controller;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 import com.group3.cafeteria_system.service.EmailService;
 import com.group3.cafeteria_system.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import java.util.Map;
 
 @Controller
 public class AuthController {
@@ -46,9 +49,9 @@ public class AuthController {
         return "login";
     }
 
-    // ─────────────────────────────────────────
+    // 
     // REGISTRATION
-    // ─────────────────────────────────────────
+    // 
 
     @GetMapping("/register")
     public String registerPage() {
@@ -61,26 +64,59 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> register(
             @RequestBody Map<String, String> body) {
 
-        String username  = body.getOrDefault("username", "").trim();
-        String password  = body.getOrDefault("password", "");
-        String firstName = body.getOrDefault("firstName", "").trim();
-        String lastName  = body.getOrDefault("lastName", "").trim();
-        String email     = body.getOrDefault("email", "").trim();
+        String username      = body.getOrDefault("username", "").trim();
+        String password      = body.getOrDefault("password", "");
+        String confirmPassword = body.getOrDefault("confirmPassword", "");
+        String firstName     = body.getOrDefault("firstName", "").trim();
+        String lastName      = body.getOrDefault("lastName", "").trim();
+        String email         = body.getOrDefault("email", "").trim();
+
+        if (username.isBlank()) {
+            username = email;
+        }
 
         // Validation
         if (username.isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Username is required."));
+                    .body(Map.of(
+                            "success", false,
+                            "error", "Email is required for registration."
+                    ));
         }
-        if (password.length() < 8) {
+        if (firstName.isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error",
-                            "Password must be at least 8 characters."));
+                    .body(Map.of(
+                            "success", false,
+                            "error", "First name is required."
+                    ));
+        }
+        if (lastName.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                            "success", false,
+                            "error", "Last name is required."
+                    ));
         }
         if (!email.contains("@")) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error",
-                            "A valid email address is required."));
+                    .body(Map.of(
+                            "success", false,
+                            "error", "A valid email address is required."
+                    ));
+        }
+        if (!password.equals(confirmPassword)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                            "success", false,
+                            "error", "Passwords do not match."
+                    ));
+        }
+        if (password.length() < 8) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                            "success", false,
+                            "error", "Password must be at least 8 characters."
+                    ));
         }
 
         try {
@@ -90,26 +126,57 @@ public class AuthController {
                     email, "STUDENT"
             );
             return ResponseEntity.ok(Map.of(
+                    "success", true,
                     "message",
                     "Account created successfully. You can now log in.",
                     "username", username
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(
+                            "success", false,
+                            "error", e.getMessage()
+                    ));
         }
     }
 
     // Thymeleaf — browser form submits, gets redirect
     @PostMapping("/register")
     public String registerForm(
-            @RequestParam String username,
             @RequestParam String password,
+            @RequestParam String confirmPassword,
             @RequestParam String firstName,
             @RequestParam String lastName,
             @RequestParam String email,
             RedirectAttributes redirectAttributes) {
 
+        String username = email == null ? "" : email.trim();
+        String trimmedFirstName = firstName == null ? "" : firstName.trim();
+        String trimmedLastName = lastName == null ? "" : lastName.trim();
+
+        if (trimmedFirstName.isBlank()) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "First name is required.");
+            return "redirect:/register";
+        }
+        if (trimmedLastName.isBlank()) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "Last name is required.");
+            return "redirect:/register";
+        }
+        if (username.isBlank() || !username.contains("@")) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "A valid email address is required.");
+            return "redirect:/register";
+        }
+        if (!password.equals(confirmPassword)) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage", "Passwords do not match.");
+            return "redirect:/register";
+        }
         if (password.length() < 8) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage",
@@ -120,8 +187,8 @@ public class AuthController {
         try {
             userService.registerUser(
                     username, password,
-                    firstName, lastName,
-                    email, "STUDENT"
+                    trimmedFirstName, trimmedLastName,
+                    email.trim(), "STUDENT"
             );
             redirectAttributes.addFlashAttribute(
                     "successMessage",
@@ -141,7 +208,7 @@ public class AuthController {
 
     @GetMapping("/forgot-password")
     public String forgotPasswordPage() {
-        return "auth/forgot-password";
+        return "forgot-password";
     }
 
     // Thymeleaf form
@@ -183,6 +250,7 @@ public class AuthController {
         }
 
         return ResponseEntity.ok(Map.of(
+                "success", true,
                 "message",
                 "If an account exists with that email, " +
                         "a reset link has been sent."
@@ -202,11 +270,11 @@ public class AuthController {
         if (token == null || token.isBlank()) {
             model.addAttribute("errorMessage",
                     "Invalid reset link. Please request a new one.");
-            return "auth/reset-password";
+            return "reset-password";
         }
 
         model.addAttribute("token", token);
-        return "auth/reset-password";
+        return "reset-password";
     }
 
     // Thymeleaf form
@@ -255,19 +323,26 @@ public class AuthController {
 
         if (password.length() < 8) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error",
-                            "Password must be at least 8 characters."));
+                    .body(Map.of(
+                            "success", false,
+                            "error",
+                            "Password must be at least 8 characters."
+                    ));
         }
 
         try {
             userService.resetPassword(token, password);
             return ResponseEntity.ok(Map.of(
+                    "success", true,
                     "message",
                     "Password reset successfully. You can now log in."
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(
+                            "success", false,
+                            "error", e.getMessage()
+                    ));
         }
     }
 }

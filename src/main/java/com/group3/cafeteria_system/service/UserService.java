@@ -1,16 +1,21 @@
 package com.group3.cafeteria_system.service;
 
-import com.group3.cafeteria_system.model.User;
-import com.group3.cafeteria_system.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.*;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import com.group3.cafeteria_system.model.PasswordResetToken;
-import com.group3.cafeteria_system.repository.PasswordResetTokenRepository;
 import org.springframework.stereotype.Service;
-import java.util.*;
+
+import com.group3.cafeteria_system.model.PasswordResetToken;
+import com.group3.cafeteria_system.model.User;
+import com.group3.cafeteria_system.repository.PasswordResetTokenRepository;
+import com.group3.cafeteria_system.repository.UserRepository;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -27,18 +32,27 @@ public UserService (UserRepository userRepository, PasswordEncoder passwordEncod
     this.tokenRepository = tokenRepository;
 }
 
+    private String normalizeUsername(String username) {
+        return username == null ? "" : username.trim().toLowerCase();
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
+    }
+
     @Override
     public UserDetails loadUserByUsername(String username)
             throws UsernameNotFoundException {
 
-        User user = userRepository.findByUsername(username)
+        String normalizedUsername = normalizeUsername(username);
+        User user = userRepository.findByUsername(normalizedUsername)
                 .orElseThrow(() ->
                         new UsernameNotFoundException(
-                                "User not found: " + username));
+                                "User not found: " + normalizedUsername));
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
-                user.getPasswordHash(),  // changed from getPassword()
+                user.getPasswordHash(),
                 Collections.singletonList(
                         new SimpleGrantedAuthority("ROLE_" + user.getRole())
                 )
@@ -47,7 +61,7 @@ public UserService (UserRepository userRepository, PasswordEncoder passwordEncod
 
     // User retrieval
     public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
+        return userRepository.findByUsername(normalizeUsername(username));
     }
 
     // New — used by controllers to get the userId for placeOrder()
@@ -77,20 +91,23 @@ public UserService (UserRepository userRepository, PasswordEncoder passwordEncod
     public User registerUser(String username, String rawPassword,
                              String firstName, String lastName,
                              String email, String role) {
-        if (userRepository.existsByUsername(username)) {
-            throw new IllegalArgumentException("Username already taken, user has to try a new one.");
+        String normalizedUsername = normalizeUsername(username);
+        String normalizedEmail = normalizeEmail(email);
+
+        if (userRepository.existsByUsername(normalizedUsername)) {
+            throw new IllegalArgumentException("Email already taken. Please use a different email.");
         }
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmail(normalizedEmail)) {
             throw new IllegalArgumentException("Email already registered.");
         }
         // Look into creating maybe custom business rule exceptions, grouped. **Nice to have code later on.(assign to Seth?)
 
         User user = new User();
-        user.setUsername(username);
+        user.setUsername(normalizedUsername);
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
         user.setFirstName(firstName);
         user.setLastName(lastName);
-        user.setEmail(email);
+        user.setEmail(normalizedEmail);
         user.setRole(role);
         return userRepository.save(user);
     }
@@ -101,8 +118,8 @@ public UserService (UserRepository userRepository, PasswordEncoder passwordEncod
 
     // Password Reset method
     public String generatePasswordResetToken(String email) {
-        // Find user by email
-        User user = userRepository.findByEmail(email)
+        String normalizedEmail = normalizeEmail(email);
+        User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException(
                         "No account found with that email address."));
 
