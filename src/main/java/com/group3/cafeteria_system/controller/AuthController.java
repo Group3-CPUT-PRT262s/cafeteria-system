@@ -1,5 +1,6 @@
 package com.group3.cafeteria_system.controller;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -236,7 +237,7 @@ public class AuthController {
     // REST
     @PostMapping("/api/auth/forgot-password")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> forgotPasswordApi(
+    public ResponseEntity<Map<String, Serializable>> forgotPasswordApi(
             @RequestBody Map<String, String> body) {
 
         String email = body.getOrDefault("email", "").trim();
@@ -315,7 +316,7 @@ public class AuthController {
     // REST
     @PostMapping("/api/auth/reset-password")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> resetPasswordApi(
+    public ResponseEntity<Map<String, Serializable>> resetPasswordApi(
             @RequestBody Map<String, String> body) {
 
         String token    = body.getOrDefault("token", "");
