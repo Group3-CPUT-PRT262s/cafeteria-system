@@ -44,7 +44,7 @@ public class StaffController {
     }
 
     @GetMapping("/staff/edit-item")
-    public String editItem(@RequestParam(value = "id", required = false) Long id,
+    public String editItem(@RequestParam(required = false) Long id,
                            Model model) {
         if (id != null) {
             menuService.getItemById(id).ifPresent(item -> model.addAttribute("item", item));
