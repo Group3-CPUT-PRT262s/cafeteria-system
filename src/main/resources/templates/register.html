@@ -1,222 +1,133 @@
 <!DOCTYPE html>
-
-<html lang="en"
-      xmlns:th="http://www.thymeleaf.org">
-
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1">
-
-
-    <title>Create Account</title>
-
-    <link rel="stylesheet"
-          th:href="@{/css/auth.css}">
-
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account | Campus Cafeteria</title>
+<link rel="stylesheet" th:href="@{/css/auth.css}">
 </head>
-
 <body>
 
-<div class="auth-wrapper">
+<main class="auth-wrapper">
 
+<section class="auth-panel auth-form-panel" aria-labelledby="register-heading">
 
-    <!-- LEFT FORM -->
+<div class="auth-container">
 
-    <div class="auth-panel auth-form-panel">
+<header class="auth-header">
+<div class="auth-logo"><h2>Campus Cafeteria</h2></div>
+<p class="auth-kicker">Join Today</p>
+<h1 id="register-heading" class="auth-title">Create your account</h1>
+<p class="auth-subtitle">Register to start ordering meals online.</p>
+</header>
 
-        <div class="auth-container">
+<div th:if="${errorMessage}" class="auth-alert auth-alert-danger" role="alert" aria-live="polite" th:text="${errorMessage}"></div>
+<div th:if="${successMessage}" class="auth-alert auth-alert-success" role="status" aria-live="polite" th:text="${successMessage}"></div>
 
-            <div class="auth-logo">
-                <h2>Campus Cafeteria</h2>
-            </div>
+<form th:action="@{/register}" method="post" class="auth-form" id="registerForm" novalidate>
+<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
-            <div class="auth-kicker">
-                Join Today
-            </div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="firstName">First Name</label>
+<input id="firstName" name="firstName" type="text" class="form-control" autocomplete="given-name" required>
+</div>
 
-            <h1 class="auth-title">
-                Create your account
-            </h1>
+<div class="form-group">
+<label class="form-label" for="lastName">Last Name</label>
+<input id="lastName" name="lastName" type="text" class="form-control" autocomplete="family-name" required>
+</div>
+</div>
 
-            <p class="auth-subtitle">
-                Register to start ordering meals online.
-            </p>
+<div class="form-group">
+<label class="form-label" for="username">Username</label>
+<input id="username" name="username" type="text" class="form-control" autocomplete="username" spellcheck="false" required>
+<small class="form-feedback">Choose a unique username using letters and numbers.</small>
+</div>
 
-            <div th:if="${errorMessage}" class="auth-alert auth-alert-danger" th:text="${errorMessage}"></div>
-            <div th:if="${successMessage}" class="auth-alert auth-alert-success" th:text="${successMessage}"></div>
+<div class="form-group">
+<label class="form-label" for="email">Email Address</label>
+<input id="email" name="email" type="email" class="form-control" autocomplete="email" required>
+<small class="form-feedback"></small>
+</div>
 
-            <form th:action="@{/register}"
-                  method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+<div class="form-group">
+<label class="form-label" for="regPassword">Password</label>
+<div class="password-wrapper">
+<input id="regPassword" name="password" type="password" class="form-control" autocomplete="new-password" required>
+<button type="button" class="password-toggle" data-target="regPassword" aria-label="Show password">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+</button>
+</div>
 
-                <div class="form-row">
+<div class="password-strength">
+<div class="strength-bar"><div class="strength-fill"></div></div>
+<div class="strength-text">Password strength</div>
+</div>
 
-                    <div class="form-group">
-                        <label class="form-label">
-                            First Name
-                        </label>
+<!-- <ul class="password-checklist">
+<li>At least 8 characters</li>
+<li>One uppercase letter</li>
+<li>One lowercase letter</li>
+<li>One number</li>
+<li>One special character</li>
+</ul> -->
 
-                        <input
-                                type="text"
-                                name="firstName"
-                                class="form-control"
-                                required>
-                    </div>
+</div>
 
-                    <div class="form-group">
+<div class="form-group">
+<label class="form-label" for="confirmPassword">Confirm Password</label>
+<div class="password-wrapper">
+<input id="confirmPassword" name="confirmPassword" type="password" class="form-control" autocomplete="new-password" required>
+<button type="button" class="password-toggle" data-target="confirmPassword" aria-label="Show password">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+</button>
+</div>
+<small class="form-feedback" id="passwordMatch"></small>
+</div>
 
-                        <label class="form-label">
-                            Last Name
-                        </label>
+<button class="auth-submit" id="registerButton" type="submit">Create Account</button>
 
-                        <input
-                                type="text"
-                                name="lastName"
-                                class="form-control"
-                                required>
+</form>
 
-                    </div>
+<div class="auth-divider">OR</div>
 
-                </div>
+<button type="button" class="google-btn" disabled>Continue with Google (Coming Soon)</button>
 
-                <div class="form-group">
+<footer class="auth-footer">
+Already have an account?
+<a th:href="@{/login}" class="auth-link">Sign In</a>
+</footer>
 
-                    <label class="form-label">
-                        Email Address
-                    </label>
+</div>
+</section>
 
-                    <input
-                            type="email"
-                            name="email"
-                            class="form-control"
-                            required>
+<section class="auth-panel auth-visual-panel" aria-hidden="true">
+<div class="visual-shape shape-1"></div>
+<div class="visual-shape shape-2"></div>
+<div class="visual-shape shape-3"></div>
+<div class="auth-visual-content">
+<div class="auth-badge">New Accounts Welcome</div>
+<h1>Fresh meals.<br>Ready when you are.</h1>
+<p>Join Campus Cafeteria and place orders ahead of time from anywhere on campus.</p>
+</div>
+</section>
 
-                </div>
-
-
-                <div class="form-group">
-
-                    <label class="form-label">
-                        Password
-                    </label>
-
-                    <div class="password-wrapper">
-
-                        <input
-                                type="password"
-                                id="regPassword"
-                                class="form-control"
-                                name="password"
-                                required>
-
-                        <button
-                                type="button"
-                                class="password-toggle"
-                                onclick="togglePassword('regPassword')">
-                            👁
-                        </button>
-
-                    </div>
-
-                    <div class="password-strength">
-
-                        <div class="strength-bar">
-                            <div class="strength-fill"></div>
-                        </div>
-
-                        <div class="strength-text">
-                            Password strength
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <div class="form-group">
-
-                    <label class="form-label">
-                        Confirm Password
-                    </label>
-
-                    <input
-                            type="password"
-                            name="confirmPassword"
-                            class="form-control"
-                            required>
-
-                </div>
-
-                <button
-                        type="submit"
-                        class="auth-submit">
-                    Create Account
-                </button>
-
-            </form>
-
-            <div class="auth-divider">
-                OR
-            </div>
-
-            <button class="google-btn">
-                Continue with Google
-            </button>
-
-            <div class="auth-footer">
-
-                Already have an account?
-
-                <a th:href="@{/login}"
-                   class="auth-link">
-                    Sign In
-                </a>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <!-- RIGHT VISUAL -->
-
-    <div class="auth-panel auth-visual-panel">
-
-        <div class="visual-shape shape-1"></div>
-        <div class="visual-shape shape-2"></div>
-        <div class="visual-shape shape-3"></div>
-
-        <div class="auth-visual-content">
-
-            <div class="auth-badge">
-                New Accounts Welcome
-            </div>
-
-            <h1>
-                Fresh meals.<br>
-                Ready when you are.
-            </h1>
-
-            <p>
-                Join Campus Cafeteria and place
-                orders ahead of time from anywhere
-                on campus.
-            </p>
-
-        </div>
-
-    </div>
+</main>
 
 <script>
-    function togglePassword(id) {
-        const field = document.getElementById(id);
+document.querySelectorAll('.password-toggle').forEach(btn=>{
+ btn.addEventListener('click',()=>{
+   const input=document.getElementById(btn.dataset.target);
+   input.type=input.type==='password'?'text':'password';
+ });
+});
 
-        field.type =
-            field.type === 'password'
-                ? 'text'
-                : 'password';
-    }
+document.getElementById('registerForm').addEventListener('submit',()=>{
+ const btn=document.getElementById('registerButton');
+ btn.disabled=true;
+ btn.textContent='Creating Account...';
+});
 </script>
 
 </body>

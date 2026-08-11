@@ -3,9 +3,11 @@
       xmlns:th="http://www.thymeleaf.org">
 <head>
     <th:block th:replace="~{base :: head}"></th:block>
-    <title th:text="${pageTitle}">Edit Item</title>
+    <title th:text="${pageTitle}">Add Item</title>
     <style>
-        .form-wrapper { max-width: 600px; }
+        .form-wrapper {
+            max-width: 600px;
+        }
         .form-card {
             background:    #fff;
             border:        1px solid var(--cc-border);
@@ -26,12 +28,15 @@
             font-weight: 600;
             color:       #495057;
         }
-        .form-control, .form-select {
+        .form-control,
+        .form-select {
             border:        1.5px solid var(--cc-border);
             border-radius: 12px;
             background:    #f8fafd;
+            font-size:     0.9rem;
         }
-        .form-control:focus, .form-select:focus {
+        .form-control:focus,
+        .form-select:focus {
             border-color: var(--cc-navy);
             box-shadow:   0 0 0 3px rgba(31,56,100,0.1);
             background:   #fff;
@@ -51,23 +56,31 @@
             cursor:        pointer;
             transition:    all 0.15s;
         }
-        .btn-save:hover { background: #162d52; }
+        .btn-save:hover   { background: #162d52; }
+        .btn-save:disabled {
+            background: #aaa;
+            cursor:     not-allowed;
+        }
         .btn-cancel {
-            padding:         0.7rem 1.75rem;
-            background:      #fff;
-            color:           var(--cc-muted);
-            border:          1.5px solid var(--cc-border);
-            border-radius:   12px;
-            font-weight:     600;
-            cursor:          pointer;
+            padding:       0.7rem 1.75rem;
+            background:    #fff;
+            color:         var(--cc-muted);
+            border:        1.5px solid var(--cc-border);
+            border-radius: 12px;
+            font-weight:   600;
+            cursor:        pointer;
             text-decoration: none;
-            display:         flex;
-            align-items:     center;
-            transition:      all 0.15s;
+            display:       flex;
+            align-items:   center;
+            transition:    all 0.15s;
         }
         .btn-cancel:hover {
             border-color: var(--cc-navy);
             color:        var(--cc-navy);
+        }
+        #formError {
+            border-radius: 12px;
+            font-size:     0.875rem;
         }
     </style>
 </head>
@@ -79,14 +92,14 @@
             <div class="form-wrapper">
 
                 <div class="page-header">
-                    <h1>Edit Item</h1>
-                    <p th:text="'Editing: ' + ${item.itemName}"></p>
+                    <h1>Add New Item</h1>
+                    <p>Add a new item to the cafeteria menu</p>
                 </div>
 
                 <div class="form-card">
                     <div class="form-card-title">
-                        <i class="bi bi-pencil-square"></i>
-                        Update Item Details
+                        <i class="bi bi-plus-circle"></i>
+                        Item Details
                     </div>
 
                     <div id="formError"
@@ -96,17 +109,12 @@
                          class="alert alert-success"
                          style="display:none"></div>
 
-                    <!-- Hidden item ID -->
-                    <input type="hidden"
-                           id="itemId"
-                           th:value="${item.menuItemId}">
-
                     <div class="mb-3">
                         <label class="form-label">Item Name *</label>
                         <input type="text"
                                class="form-control"
                                id="itemName"
-                               th:value="${item.itemName}">
+                               placeholder="e.g. Chicken Wrap">
                     </div>
 
                     <div class="mb-3">
@@ -114,7 +122,7 @@
                         <textarea class="form-control"
                                   id="description"
                                   rows="3"
-                                  th:text="${item.description}">
+                                  placeholder="Brief description of the item">
             </textarea>
                     </div>
 
@@ -124,49 +132,41 @@
                             <input type="number"
                                    class="form-control"
                                    id="price"
+                                   min="0"
                                    step="0.50"
-                                   th:value="${item.price}">
+                                   placeholder="0.00">
                         </div>
                         <div class="col-6 mb-3">
                             <label class="form-label">Category *</label>
-                            <select class="form-select"
-                                    id="categoryId">
+                            <select class="form-select" id="categoryId">
+                                <option value="">
+                                    Select category...
+                                </option>
                                 <option th:each="cat : ${categories}"
                                         th:value="${cat.categoryId}"
-                                        th:text="${cat.categoryName}"
-                                        th:selected="${cat.categoryId
-                                == item.categoryId}">
+                                        th:text="${cat.categoryName}">
                                 </option>
                             </select>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Status</label>
+                        <label class="form-label">
+                            Initial Status
+                        </label>
                         <select class="form-select" id="status">
-                            <option value="Available"
-                                    th:selected="${item.status
-                            == 'Available'}">
-                                Available
-                            </option>
-                            <option value="Low Stock"
-                                    th:selected="${item.status
-                            == 'Low Stock'}">
-                                Low Stock
-                            </option>
-                            <option value="Sold Out"
-                                    th:selected="${item.status
-                            == 'Sold Out'}">
-                                Sold Out
-                            </option>
+                            <option value="Available">Available</option>
+                            <option value="Low Stock">Low Stock</option>
+                            <option value="Sold Out">Sold Out</option>
                         </select>
                     </div>
 
                     <div class="form-actions">
                         <button class="btn-save"
-                                onclick="updateItem()">
+                                id="saveBtn"
+                                onclick="saveItem()">
                             <i class="bi bi-check-lg me-1"></i>
-                            Save Changes
+                            Add Item
                         </button>
                         <a href="/staff/menu" class="btn-cancel">
                             Cancel
@@ -180,13 +180,11 @@
 </th:block>
 
 <script>
-    // UPDATE — edit existing menu item
-    // PUT /api/staff/menu/{id}
-    // DATABASE OPERATION: UPDATE (full)
-    // Updates all editable fields in menu_items table
-    function updateItem() {
-        const itemId     = document.getElementById('itemId')
-            .value;
+    // CREATE — add new menu item
+    // POST /api/staff/menu
+    // DATABASE OPERATION: CREATE
+    // Inserts a new row into the menu_items table
+    function saveItem() {
         const itemName   = document.getElementById('itemName')
             .value.trim();
         const description = document.getElementById('description')
@@ -196,6 +194,7 @@
             .value;
         const status     = document.getElementById('status').value;
 
+        // Validation
         if (!itemName) {
             showError('Item name is required.');
             return;
@@ -204,15 +203,19 @@
             showError('Please enter a valid price.');
             return;
         }
+        if (!categoryId) {
+            showError('Please select a category.');
+            return;
+        }
 
-        const btn = document.querySelector('.btn-save');
+        const btn = document.getElementById('saveBtn');
         btn.disabled    = true;
         btn.textContent = 'Saving...';
 
-        // UPDATE — PUT updates all fields in menu_items
-        fetch(`/api/staff/menu/${itemId}`, {
-            method:      'PUT',
-            credentials: 'same-origin',editing,item,
+        // CREATE — POST inserts into menu_items
+        fetch('/api/staff/menu', {
+            method:      'POST',
+            credentials: 'same-origin',
             headers:     { 'Content-Type': 'application/json' },
             body:        JSON.stringify({
                 itemName:    itemName,
@@ -225,25 +228,27 @@
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'success') {
-                    document.getElementById('formSuccess')
-                        .textContent   = 'Changes saved successfully!';
-                    document.getElementById('formSuccess')
-                        .style.display = 'block';
                     document.getElementById('formError')
                         .style.display = 'none';
+                    document.getElementById('formSuccess')
+                        .textContent   =
+                        `"${data.itemName}" added successfully!`;
+                    document.getElementById('formSuccess')
+                        .style.display = 'block';
+                    // Redirect after short delay
                     setTimeout(() =>
                             window.location.href = '/staff/menu',
                         1200);
                 } else {
                     showError(data.message);
                     btn.disabled    = false;
-                    btn.textContent = 'Save Changes';
+                    btn.textContent = 'Add Item';
                 }
             })
             .catch(() => {
-                showError('Something went wrong.');
+                showError('Something went wrong. Please try again.');
                 btn.disabled    = false;
-                btn.textContent = 'Save Changes';
+                btn.textContent = 'Add Item';
             });
     }
 
@@ -251,6 +256,8 @@
         const el = document.getElementById('formError');
         el.textContent   = message;
         el.style.display = 'block';
+        document.getElementById('formSuccess')
+            .style.display = 'none';
     }
 </script>
 </body>

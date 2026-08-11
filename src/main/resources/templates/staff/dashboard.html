@@ -1,88 +1,608 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <th:block th:replace="~{base :: head}"></th:block>
+    <title th:text="${pageTitle}">Dashboard</title>
+    <style>
+        /* ── Dashboard layout ────────────────────── */
+        .dashboard-header {
+            display:         flex;
+            justify-content: space-between;
+            align-items:     flex-end;
+            margin-bottom:   1.5rem;
+            padding-top:     0.5rem;
+        }
+        .dashboard-title {
+            font-size:     1.6rem;
+            font-weight:   700;
+            color:         var(--cc-navy);
+            margin-bottom: 0.2rem;
+        }
+        .dashboard-subtitle {
+            color:     var(--cc-muted);
+            font-size: 0.9rem;
+            margin:    0;
+        }
+        /* ── Stats bar ───────────────────────────── */
+        .stats-bar {
+            display:               grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap:                   1rem;
+            margin-bottom:         1.75rem;
+        }
+        .stat-card {
+            background:    #fff;
+            border:        1px solid var(--cc-border);
+            border-radius: 14px;
+            padding:       1rem 1.25rem;
+            text-align:    center;
+        }
+        .stat-number {
+            font-size:     1.75rem;
+            font-weight:   700;
+            color:         var(--cc-navy);
+            line-height:   1;
+        }
+        .stat-label {
+            font-size:  0.78rem;
+            color:      var(--cc-muted);
+            margin-top: 4px;
+        }
+        /* ── Slot sections ───────────────────────── */
+        .slot-section {
+            margin-bottom: 1.5rem;
+        }
+        .slot-header {
+            display:         flex;
+            align-items:     center;
+            gap:             0.75rem;
+            margin-bottom:   0.75rem;
+            padding:         0.6rem 1rem;
+            background:      var(--cc-navy);
+            border-radius:   12px;
+            color:           #fff;
+        }
+        .slot-time {
+            font-size:   1rem;
+            font-weight: 700;
+        }
+        .slot-count {
+            background:    rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding:       0.15rem 0.65rem;
+            font-size:     0.78rem;
+            font-weight:   600;
+        }
+        .slot-empty {
+            color:      var(--cc-muted);
+            font-size:  0.85rem;
+            font-style: italic;
+            padding:    0.5rem 1rem;
+        }
+        /* ── Order cards in slot ─────────────────── */
+        .orders-grid {
+            display:               grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap:                   1rem;
+        }
+        .order-card {
+            background:    #fff;
+            border:        1px solid var(--cc-border);
+            border-radius: 14px;
+            padding:       1.1rem;
+            transition:    box-shadow 0.15s;
+        }
+        .order-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        .order-card-header {
+            display:         flex;
+            justify-content: space-between;
+            align-items:     center;
+            margin-bottom:   0.65rem;
+        }
+        .order-number {
+            font-weight: 700;
+            font-size:   0.9rem;
+            color:       var(--cc-navy);
+        }
+        .order-customer {
+            font-size:   0.78rem;
+            color:       var(--cc-muted);
+            margin-top:  2px;
+        }
+        .order-items-list {
+            font-size:    0.82rem;
+            color:        var(--cc-text);
+            margin:       0.5rem 0;
+            padding-left: 0;
+            list-style:   none;
+        }
+        .order-items-list li {
+            padding:       3px 0;
+            border-bottom: 1px solid var(--cc-border);
+            display:       flex;
+            justify-content: space-between;
+        }
+        .order-items-list li:last-child {
+            border-bottom: none;
+        }
+        .order-total {
+            font-weight:  700;
+            font-size:    0.9rem;
+            color:        var(--cc-navy);
+            text-align:   right;
+            margin-top:   0.5rem;
+        }
+        /* ── Status badge colours ────────────────── */
+        .status-pending   { background: #fff3cd; color: #856404; }
+        .status-confirmed { background: #cfe2ff; color: #084298; }
+        .status-preparing { background: #d1ecf1; color: #0c5460; }
+        .status-ready     { background: #d4edda; color: #155724; }
+        .status-collected { background: #e2e3e5; color: #383d41; }
+        .status-badge {
+            font-size:     0.72rem;
+            font-weight:   600;
+            padding:       0.25rem 0.65rem;
+            border-radius: 20px;
+            display:       inline-block;
+        }
+        /* ── Status update buttons ───────────────── */
+        .status-actions {
+            display:    flex;
+            gap:        6px;
+            margin-top: 0.75rem;
+            flex-wrap:  wrap;
+        }
+        .btn-status {
+            padding:       0.3rem 0.75rem;
+            border:        none;
+            border-radius: 50px;
+            font-size:     0.78rem;
+            font-weight:   600;
+            cursor:        pointer;
+            transition:    all 0.15s;
+        }
+        .btn-preparing {
+            background: #d1ecf1;
+            color:      #0c5460;
+        }
+        .btn-preparing:hover {
+            background: #0c5460;
+            color:      #fff;
+        }
+        .btn-ready {
+            background: #d4edda;
+            color:      #155724;
+        }
+        .btn-ready:hover {
+            background: #155724;
+            color:      #fff;
+        }
+        .btn-collected {
+            background: #e2e3e5;
+            color:      #383d41;
+        }
+        .btn-collected:hover {
+            background: #383d41;
+            color:      #fff;
+        }
+        /* ── Loading / empty ─────────────────────── */
+        .loading-state {
+            display:         flex;
+            flex-direction:  column;
+            align-items:     center;
+            padding:         4rem;
+            color:           var(--cc-muted);
+        }
+        .no-orders {
+            text-align: center;
+            padding:    4rem;
+            color:      var(--cc-muted);
+        }
+        .no-orders i {
+            font-size:     3rem;
+            margin-bottom: 1rem;
+            display:       block;
+        }
+        /* ── Refresh button ──────────────────────── */
+        .btn-refresh {
+            display:      flex;
+            align-items:  center;
+            gap:          6px;
+            padding:      0.45rem 1rem;
+            background:   rgba(255,255,255,0.15);
+            border:       1px solid rgba(255,255,255,0.3);
+            border-radius: 50px;
+            color:        #fff;
+            font-size:    0.82rem;
+            font-weight:  600;
+            cursor:       pointer;
+            transition:   all 0.15s;
+        }
+        .btn-refresh:hover {
+            background: rgba(255,255,255,0.25);
+        }
+    </style>
 </head>
-<body class="bg-light">
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2>Staff Dashboard</h2>
-            <p class="text-muted">Monitor and manage customer orders.</p>
-        </div>
-        <div>
-            <a class="btn btn-secondary" href="/staff/menu-management">Manage Menu</a>
-            <a class="btn btn-outline-danger" href="/logout">Logout</a>
-        </div>
-    </div>
+<body>
+<th:block th:replace="~{base :: layout(~{::content})}">
+    <th:block th:fragment="content">
 
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Pending Orders</h5>
-                    <p class="card-text display-4" th:text="${orders.stream().filter(o -> o.orderStatus == 'Pending').count()}">0</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Ready for Pickup</h5>
-                    <p class="card-text display-4" th:text="${orders.stream().filter(o -> o.orderStatus == 'Ready').count()}">0</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Collected</h5>
-                    <p class="card-text display-4" th:text="${orders.stream().filter(o -> o.orderStatus == 'Collected').count()}">0</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Total Orders</h5>
-                    <p class="card-text display-4" th:text="${orders.size()}">0</p>
-                </div>
-            </div>
-        </div>
-    </div>
+        <div class="container-fluid px-4">
 
-    <h4 class="mt-5 mb-3">All Orders</h4>
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-            <tr>
-                <th>Order ID</th>
-                <th>Status</th>
-                <th>Total Amount</th>
-                <th>Ordered At</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="order : ${orders}">
-                <td th:text="'#' + ${order.id}"></td>
-                <td>
-                    <span th:text="${order.orderStatus}" 
-                          th:classappend="${order.orderStatus == 'Pending' ? 'badge bg-warning' : (order.orderStatus == 'Ready' ? 'badge bg-info' : 'badge bg-success')}"></span>
-                </td>
-                <td th:text="'₦' + ${#numbers.formatDecimal(order.totalAmount, 1, 'COMMA', 2, 'POINT')}"></td>
-                <td th:text="${#temporals.format(order.orderedAt, 'dd MMM yyyy HH:mm')}"></td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
+            <!-- ── Page header ──────────────────── -->
+            <div class="dashboard-header">
+                <div>
+                    <h1 class="dashboard-title">Order Dashboard</h1>
+                    <p class="dashboard-subtitle">
+                        Live orders grouped by pickup time slot
+                    </p>
+                </div>
+                <button class="btn-refresh"
+                        onclick="loadDashboard()"
+                        style="background:var(--cc-navy);
+                       border-color:var(--cc-border);
+                       color:#fff">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    Refresh
+                </button>
+            </div>
 
-    <div th:if="${orders.empty}" class="alert alert-info">
-        No orders yet.
-    </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+            <!-- ── Stats bar ────────────────────── -->
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <div class="stat-number"
+                         id="statTotal">—</div>
+                    <div class="stat-label">Total Orders</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number"
+                         id="statPending">—</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number"
+                         id="statPreparing">—</div>
+                    <div class="stat-label">Preparing</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number"
+                         id="statReady">—</div>
+                    <div class="stat-label">Ready</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number"
+                         id="statCollected">—</div>
+                    <div class="stat-label">Collected</div>
+                </div>
+            </div>
+
+            <!-- ── Dashboard content ────────────── -->
+            <div id="dashLoading" class="loading-state">
+                <div class="spinner-border text-primary"
+                     role="status"></div>
+                <p class="mt-2">Loading orders...</p>
+            </div>
+
+            <div id="dashContent" style="display:none"></div>
+
+            <div id="dashEmpty" class="no-orders"
+                 style="display:none">
+                <i class="bi bi-inbox"></i>
+                <h4>No orders yet</h4>
+                <p>Orders will appear here as customers place them.</p>
+            </div>
+
+        </div>
+
+        <!-- ── Toast ────────────────────────────── -->
+        <div class="toast-container position-fixed
+            bottom-0 end-0 p-3">
+            <div id="dashToast"
+                 class="toast align-items-center border-0"
+                 role="alert">
+                <div class="d-flex">
+                    <div class="toast-body"
+                         id="dashToastMsg"></div>
+                    <button type="button"
+                            class="btn-close btn-close-white
+                           me-2 m-auto"
+                            data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        </div>
+
+    </th:block>
+</th:block>
+
+<script>
+    // Status display config
+    const STATUS_CONFIG = {
+        'Pending':   {
+            cls: 'status-pending',
+            label: 'Pending',
+            next: ['Confirmed', 'Preparing']
+        },
+        'Confirmed': {
+            cls: 'status-confirmed',
+            label: 'Confirmed',
+            next: ['Preparing']
+        },
+        'Preparing': {
+            cls: 'status-preparing',
+            label: 'Preparing',
+            next: ['Ready']
+        },
+        'Ready':     {
+            cls: 'status-ready',
+            label: 'Ready ✓',
+            next: ['Collected']
+        },
+        'Collected': {
+            cls: 'status-collected',
+            label: 'Collected',
+            next: []
+        }
+    };
+
+    const BTN_CLASSES = {
+        'Confirmed': 'btn-status btn-preparing',
+        'Preparing': 'btn-status btn-preparing',
+        'Ready':     'btn-status btn-ready',
+        'Collected': 'btn-status btn-collected'
+    };
+
+    let allOrders  = [];
+    let timeSlots  = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDashboard();
+        // Auto-refresh every 30 seconds
+        setInterval(loadDashboard, 30000);
+    });
+
+    // ── READ — fetch all orders from DB ──────
+    // GET /api/staff/orders
+    // Retrieves all rows from customer_orders table
+    function loadDashboard() {
+        Promise.all([
+            fetch('/api/staff/orders',
+                { credentials: 'same-origin' })
+                .then(r => r.json()),
+            fetch('/api/time-slots',
+                { credentials: 'same-origin' })
+                .then(r => r.json())
+        ])
+            .then(([orders, slots]) => {
+                allOrders = orders;
+                timeSlots = slots;
+
+                document.getElementById('dashLoading')
+                    .style.display = 'none';
+
+                updateStats(orders);
+
+                // Filter out collected for main view
+                const activeOrders = orders.filter(
+                    o => o.orderStatus !== 'Collected');
+
+                if (activeOrders.length === 0 &&
+                    orders.length === 0) {
+                    document.getElementById('dashEmpty')
+                        .style.display = 'block';
+                    return;
+                }
+
+                renderDashboard(orders, slots);
+                document.getElementById('dashContent')
+                    .style.display = 'block';
+            })
+            .catch(err => {
+                console.error('Dashboard load error:', err);
+                showToast('Failed to load orders.', true);
+            });
+    }
+
+    function updateStats(orders) {
+        const counts = {
+            Pending: 0, Confirmed: 0,
+            Preparing: 0, Ready: 0, Collected: 0
+        };
+        orders.forEach(o => {
+            if (counts.hasOwnProperty(o.orderStatus)) {
+                counts[o.orderStatus]++;
+            }
+        });
+        document.getElementById('statTotal')
+            .textContent = orders.length;
+        document.getElementById('statPending')
+            .textContent = counts.Pending + counts.Confirmed;
+        document.getElementById('statPreparing')
+            .textContent = counts.Preparing;
+        document.getElementById('statReady')
+            .textContent = counts.Ready;
+        document.getElementById('statCollected')
+            .textContent = counts.Collected;
+    }
+
+    function renderDashboard(orders, slots) {
+        // Group orders by time slot
+        const grouped = {};
+        slots.forEach(slot => {
+            grouped[slot.timeSlotId] = {
+                slot:   slot,
+                orders: []
+            };
+        });
+
+        // Add unslotted group for safety
+        grouped['unassigned'] = {
+            slot:   { slotTime: 'Unassigned' },
+            orders: []
+        };
+
+        orders.forEach(order => {
+            const slotId = order.timeSlotId;
+            if (grouped[slotId]) {
+                grouped[slotId].orders.push(order);
+            } else {
+                grouped['unassigned'].orders.push(order);
+            }
+        });
+
+        let html = '';
+
+        Object.values(grouped).forEach(group => {
+            const slotOrders = group.orders;
+            // Skip empty slots
+            if (slotOrders.length === 0) return;
+
+            html += `
+        <div class="slot-section">
+            <div class="slot-header">
+                <i class="bi bi-clock"></i>
+                <span class="slot-time">
+                    Pickup: ${group.slot.slotTime}
+                </span>
+                <span class="slot-count">
+                    ${slotOrders.length} order${
+                slotOrders.length !== 1 ? 's' : ''}
+                </span>
+            </div>
+            <div class="orders-grid">
+                ${slotOrders.map(o =>
+                renderOrderCard(o)).join('')}
+            </div>
+        </div>`;
+        });
+
+        document.getElementById('dashContent')
+            .innerHTML = html || '<div class="no-orders">' +
+            '<i class="bi bi-inbox-fill"></i>' +
+            '<h4>All orders collected</h4></div>';
+    }
+
+    function renderOrderCard(order) {
+        const cfg = STATUS_CONFIG[order.orderStatus]
+            || STATUS_CONFIG['Pending'];
+
+        // Build next-status buttons
+        const btns = cfg.next.map(nextStatus => `
+        <button class="${BTN_CLASSES[nextStatus]
+        || 'btn-status'}"
+                onclick="updateOrderStatus(
+                    ${order.orderId},
+                    '${nextStatus}',
+                    this)">
+            <i class="bi bi-arrow-right-circle me-1"></i>
+            Mark ${nextStatus}
+        </button>`).join('');
+
+        return `
+    <div class="order-card" id="order-${order.orderId}">
+        <div class="order-card-header">
+            <div>
+                <div class="order-number">
+                    Order #${order.orderId}
+                </div>
+                <div class="order-customer">
+                    Customer ID: ${order.userId}
+                </div>
+            </div>
+            <span class="status-badge ${cfg.cls}"
+                  id="badge-${order.orderId}">
+                ${cfg.label}
+            </span>
+        </div>
+        <div class="order-total">
+            Total: R${parseFloat(order.totalAmount)
+            .toFixed(2)}
+        </div>
+        <div class="status-actions"
+             id="actions-${order.orderId}">
+            ${btns}
+        </div>
+    </div>`;
+    }
+
+    // ── UPDATE — change order status in DB ────
+    // PATCH /api/staff/orders/{id}/status
+    // Updates order_status column in customer_orders
+    // DATABASE OPERATION: UPDATE
+    function updateOrderStatus(orderId, newStatus, btn) {
+        btn.disabled    = true;
+        btn.textContent = 'Updating...';
+
+        fetch(`/api/staff/orders/${orderId}/status`, {
+            method:      'PATCH',
+            credentials: 'same-origin',
+            headers:     { 'Content-Type': 'application/json' },
+            body:        JSON.stringify({ status: newStatus })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast(
+                        `Order #${orderId} marked as ${newStatus}.`);
+
+                    // Update badge without full reload
+                    const badge = document
+                        .getElementById(`badge-${orderId}`);
+                    const cfg   = STATUS_CONFIG[newStatus];
+                    if (badge && cfg) {
+                        badge.className =
+                            `status-badge ${cfg.cls}`;
+                        badge.textContent = cfg.label;
+                    }
+
+                    // Update action buttons
+                    const actions = document
+                        .getElementById(`actions-${orderId}`);
+                    if (actions && cfg) {
+                        actions.innerHTML = cfg.next.map(
+                            nextStatus => `
+                    <button class="${BTN_CLASSES[nextStatus]
+                            || 'btn-status'}"
+                            onclick="updateOrderStatus(
+                                ${orderId},
+                                '${nextStatus}',
+                                this)">
+                        <i class="bi bi-arrow-right-circle me-1"></i>
+                        Mark ${nextStatus}
+                    </button>`).join('');
+                    }
+
+                    // Update stats
+                    updateStats(allOrders.map(o =>
+                        o.orderId === orderId
+                            ? { ...o, orderStatus: newStatus }
+                            : o
+                    ));
+
+                } else {
+                    showToast(data.message, true);
+                    btn.disabled    = false;
+                    btn.textContent =
+                        'Mark ' + newStatus;
+                }
+            })
+            .catch(() => {
+                showToast('Update failed. Please try again.', true);
+                btn.disabled    = false;
+            });
+    }
+
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('dashToast');
+        document.getElementById('dashToastMsg')
+            .textContent = message;
+        toast.style.background = isError
+            ? '#c0392b' : '#1F3864';
+        new bootstrap.Toast(toast, { delay: 3000 }).show();
+    }
+</script>
 </body>
 </html>

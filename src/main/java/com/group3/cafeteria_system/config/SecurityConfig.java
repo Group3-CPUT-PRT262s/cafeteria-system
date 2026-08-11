@@ -1,6 +1,5 @@
 package com.group3.cafeteria_system.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -45,6 +44,7 @@ public class SecurityConfig {
             throws Exception {
 
         http.authenticationProvider(authenticationProvider())
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/",
@@ -53,6 +53,10 @@ public class SecurityConfig {
                                 "/forgot-password",
                                 "/reset-password",
                                 "/api/auth/**",
+                                "/api/menu/**",
+                                "/api/categories",
+                                "/api/time-slots",
+                                "/api/cart/**",
                                 "/css/**",
                                 "/js/**",
                                 "/images/**"

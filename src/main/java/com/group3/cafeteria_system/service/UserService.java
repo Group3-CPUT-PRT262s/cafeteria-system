@@ -95,7 +95,7 @@ public UserService (UserRepository userRepository, PasswordEncoder passwordEncod
         String normalizedEmail = normalizeEmail(email);
 
         if (userRepository.existsByUsername(normalizedUsername)) {
-            throw new IllegalArgumentException("Email already taken. Please use a different email.");
+            throw new IllegalArgumentException("Username already taken. Please choose another one.");
         }
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new IllegalArgumentException("Email already registered.");

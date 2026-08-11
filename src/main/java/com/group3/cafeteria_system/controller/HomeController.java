@@ -7,14 +7,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class HomeController {
 
-    @GetMapping("/")
-    public String home(Authentication authentication) {
-        if (authentication != null && authentication.isAuthenticated()) {
-            return "redirect:/dashboard";
-        }
-        return "redirect:/login";
-    }
-
     @GetMapping("/dashboard")
     public String dashboard(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {

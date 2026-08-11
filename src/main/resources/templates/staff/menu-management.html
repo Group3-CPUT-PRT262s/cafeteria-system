@@ -1,64 +1,595 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menu Management</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <th:block th:replace="~{base :: head}"></th:block>
+    <title th:text="${pageTitle}">Manage Menu</title>
+    <style>
+        /* ── Page header ─────────────────────────── */
+        .mgmt-header {
+            display:         flex;
+            justify-content: space-between;
+            align-items:     flex-end;
+            margin-bottom:   1.5rem;
+            padding-top:     0.5rem;
+        }
+        .mgmt-title {
+            font-size:     1.6rem;
+            font-weight:   700;
+            color:         var(--cc-navy);
+            margin-bottom: 0.2rem;
+        }
+        .mgmt-subtitle {
+            color:     var(--cc-muted);
+            font-size: 0.9rem;
+            margin:    0;
+        }
+        .btn-add-new {
+            display:      flex;
+            align-items:  center;
+            gap:          6px;
+            padding:      0.55rem 1.25rem;
+            background:   var(--cc-navy);
+            color:        #fff;
+            border:       none;
+            border-radius: 50px;
+            font-size:    0.88rem;
+            font-weight:  600;
+            cursor:       pointer;
+            text-decoration: none;
+            transition:   all 0.15s;
+        }
+        .btn-add-new:hover {
+            background: #162d52;
+            color:      #fff;
+        }
+        /* ── Filter bar ──────────────────────────── */
+        .filter-bar {
+            display:       flex;
+            gap:           8px;
+            margin-bottom: 1.5rem;
+            flex-wrap:     wrap;
+            align-items:   center;
+        }
+        .filter-pill {
+            padding:       0.4rem 1rem;
+            border:        1.5px solid var(--cc-border);
+            border-radius: 50px;
+            font-size:     0.83rem;
+            font-weight:   500;
+            color:         var(--cc-muted);
+            background:    #fff;
+            cursor:        pointer;
+            transition:    all 0.15s;
+        }
+        .filter-pill:hover,
+        .filter-pill.active {
+            border-color: var(--cc-navy);
+            color:        var(--cc-navy);
+            background:   var(--cc-light);
+        }
+        /* ── Items grid ──────────────────────────── */
+        .mgmt-grid {
+            display:               grid;
+            grid-template-columns: repeat(auto-fill,
+            minmax(260px, 1fr));
+            gap:                   1.25rem;
+            padding-bottom:        2rem;
+        }
+        /* ── Item card ───────────────────────────── */
+        .mgmt-card {
+            background:    #fff;
+            border:        1px solid var(--cc-border);
+            border-radius: 16px;
+            overflow:      hidden;
+            transition:    box-shadow 0.15s;
+            display:       flex;
+            flex-direction: column;
+        }
+        .mgmt-card:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.09);
+        }
+        .mgmt-card.inactive {
+            opacity:      0.55;
+            border-style: dashed;
+        }
+        .mgmt-card-image {
+            height:          140px;
+            background:      var(--cc-light);
+            display:         flex;
+            align-items:     center;
+            justify-content: center;
+            font-size:       3rem;
+            color:           var(--cc-accent);
+            opacity:         0.4;
+            position:        relative;
+        }
+        .inactive-overlay {
+            position:  absolute;
+            top:       8px;
+            left:      8px;
+            background: rgba(0,0,0,0.55);
+            color:     #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding:   0.2rem 0.55rem;
+            border-radius: 20px;
+        }
+        .mgmt-card-body {
+            padding:        1rem;
+            flex:           1;
+            display:        flex;
+            flex-direction: column;
+        }
+        .mgmt-card-name {
+            font-weight:   700;
+            font-size:     0.95rem;
+            color:         var(--cc-text);
+            margin-bottom: 2px;
+        }
+        .mgmt-card-cat {
+            font-size:     0.75rem;
+            color:         var(--cc-muted);
+            margin-bottom: 0.5rem;
+        }
+        .mgmt-card-desc {
+            font-size:         0.8rem;
+            color:             var(--cc-muted);
+            margin-bottom:     0.75rem;
+            flex:              1;
+            display:           -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow:          hidden;
+        }
+        .mgmt-card-footer {
+            display:         flex;
+            justify-content: space-between;
+            align-items:     center;
+            margin-top:      auto;
+            padding-top:     0.65rem;
+            border-top:      1px solid var(--cc-border);
+        }
+        .mgmt-price {
+            font-weight: 700;
+            font-size:   1rem;
+            color:       var(--cc-navy);
+        }
+        /* ── Status dropdown inline ──────────────── */
+        .status-select {
+            border:        1.5px solid var(--cc-border);
+            border-radius: 50px;
+            padding:       0.25rem 0.6rem;
+            font-size:     0.75rem;
+            font-weight:   600;
+            cursor:        pointer;
+            background:    #fff;
+            color:         var(--cc-navy);
+        }
+        .status-select:focus {
+            outline:      none;
+            border-color: var(--cc-navy);
+        }
+        /* ── Card action buttons ─────────────────── */
+        .mgmt-card-actions {
+            display:    flex;
+            gap:        6px;
+            margin-top: 0.75rem;
+        }
+        .btn-mgmt {
+            flex:          1;
+            padding:       0.35rem 0;
+            border:        none;
+            border-radius: 8px;
+            font-size:     0.78rem;
+            font-weight:   600;
+            cursor:        pointer;
+            transition:    all 0.15s;
+            display:       flex;
+            align-items:   center;
+            justify-content: center;
+            gap:           4px;
+            text-decoration: none;
+        }
+        .btn-edit {
+            background: var(--cc-light);
+            color:      var(--cc-navy);
+        }
+        .btn-edit:hover {
+            background: var(--cc-navy);
+            color:      #fff;
+        }
+        .btn-delete {
+            background: #fce4d6;
+            color:      #c0392b;
+        }
+        .btn-delete:hover {
+            background: #c0392b;
+            color:      #fff;
+        }
+        .btn-restore {
+            background: #d4edda;
+            color:      #155724;
+        }
+        .btn-restore:hover {
+            background: #155724;
+            color:      #fff;
+        }
+        /* ── Empty / loading ─────────────────────── */
+        .empty-state {
+            text-align:  center;
+            padding:     4rem;
+            color:       var(--cc-muted);
+            grid-column: 1 / -1;
+        }
+        .empty-state i {
+            font-size:     3rem;
+            margin-bottom: 1rem;
+            display:       block;
+        }
+        /* ── Toast ───────────────────────────────── */
+        #mgmtToast {
+            background:    var(--cc-navy);
+            color:         #fff;
+            border-radius: 12px;
+        }
+    </style>
 </head>
-<body class="bg-light">
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2>Menu Management</h2>
-            <p class="text-muted">Add, edit, or manage menu items and inventory.</p>
-        </div>
-        <div>
-            <a class="btn btn-primary" href="/staff/edit-item">Add New Item</a>
-            <a class="btn btn-secondary" href="/staff/dashboard">Dashboard</a>
-            <a class="btn btn-outline-danger" href="/logout">Logout</a>
-        </div>
-    </div>
+<body>
+<th:block th:replace="~{base :: layout(~{::content})}">
+    <th:block th:fragment="content">
 
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-            <tr>
-                <th>Item Name</th>
-                <th>Description</th>
-                <th>Price</th>
-                <th>Status</th>
-                <th>Active</th>
-                <th>Created</th>
-                <th>Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="item : ${items}">
-                <td th:text="${item.itemName}"></td>
-                <td th:text="${item.description}"></td>
-                <td th:text="'₦' + ${#numbers.formatDecimal(item.price, 1, 'COMMA', 2, 'POINT')}"></td>
-                <td>
-                    <span th:text="${item.status}" 
-                          th:classappend="${item.status == 'Available' ? 'badge bg-success' : (item.status == 'Low Stock' ? 'badge bg-warning' : 'badge bg-danger')}"></span>
-                </td>
-                <td>
-                    <span th:if="${item.isActive}" class="badge bg-success">Yes</span>
-                    <span th:if="!${item.isActive}" class="badge bg-secondary">No</span>
-                </td>
-                <td th:text="${#temporals.format(item.createdAt, 'dd MMM yyyy')}"></td>
-                <td>
-                    <a class="btn btn-sm btn-outline-primary" th:href="@{/staff/edit-item(id=${item.id})}">Edit</a>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
+        <div class="container-fluid px-4">
 
-    <div th:if="${items.empty}" class="alert alert-info">
-        No menu items found. <a href="/staff/edit-item">Add one now</a>.
-    </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+            <!-- ── Page header ──────────────────── -->
+            <div class="mgmt-header">
+                <div>
+                    <h1 class="mgmt-title">Menu Management</h1>
+                    <p class="mgmt-subtitle">
+                        Add, edit, and manage cafeteria items
+                    </p>
+                </div>
+                <a href="/staff/menu/new" class="btn-add-new">
+                    <i class="bi bi-plus-lg"></i>
+                    Add New Item
+                </a>
+            </div>
+
+            <!-- ── Filter bar ───────────────────── -->
+            <div class="filter-bar">
+                <button class="filter-pill active"
+                        onclick="filterItems('all', this)">
+                    All Items
+                </button>
+                <button class="filter-pill"
+                        onclick="filterItems('active', this)">
+                    Active
+                </button>
+                <button class="filter-pill"
+                        onclick="filterItems('inactive', this)">
+                    Inactive
+                </button>
+                <span th:each="cat : ${categories}">
+            <button class="filter-pill"
+                    th:onclick="'filterByCategory('
+                        + ${cat.categoryId} + ', this)'"
+                    th:text="${cat.categoryName}">
+                Category
+            </button>
+        </span>
+            </div>
+
+            <!-- ── Items grid ───────────────────── -->
+            <div class="mgmt-grid" id="itemsGrid"> <!--Temp placeholder(for testing-->
+                <p th:text="'Items received: ' + ${items.size()}">
+                    Items: unknown
+                </p>
+                <div th:each="item : ${items}"
+                     class="mgmt-card"
+                     th:classappend="${!item.isActive} ? ' inactive' : ''"
+                     th:data-category="${item.categoryId}"
+                     th:data-active="${item.isActive}"
+                     th:id="'card-' + ${item.menuItemId}">
+
+                    <!-- Image area -->
+                    <div class="mgmt-card-image">
+                        <i class="bi bi-egg-fried"></i>
+                        <span th:if="${!item.isActive}"
+                              class="inactive-overlay">
+                    Removed
+                </span>
+                    </div>
+
+                    <!-- Card body -->
+                    <div class="mgmt-card-body">
+                        <div class="mgmt-card-name"
+                             th:text="${item.itemName}">
+                            Item Name
+                        </div>
+                        <div class="mgmt-card-cat"
+                             th:text="'Category ID: '
+                         + ${item.categoryId}">
+                        </div>
+                        <div class="mgmt-card-desc"
+                             th:text="${item.description
+                         ?: 'No description.'}">
+                        </div>
+
+                        <div class="mgmt-card-footer">
+                    <span class="mgmt-price"
+                          th:text="'R' + ${#numbers
+                              .formatDecimal(
+                                  item.price, 1, 2)}">
+                    </span>
+
+                            <!-- Status dropdown -->
+                            <!-- UPDATE — PATCH /api/staff/menu/{id}/status -->
+                            <!-- Updates status column in menu_items table -->
+                            <select class="status-select"
+                                    th:id="'status-' + ${item.menuItemId}"
+                                    th:onchange="'updateStatus('
+                                + ${item.menuItemId}
+                                + ', this.value)'"
+                                    th:if="${item.isActive}">
+                                <option value="Available"
+                                        th:selected="${item.status
+                                    == 'Available'}">
+                                    Available
+                                </option>
+                                <option value="Low Stock"
+                                        th:selected="${item.status
+                                    == 'Low Stock'}">
+                                    Low Stock
+                                </option>
+                                <option value="Sold Out"
+                                        th:selected="${item.status
+                                    == 'Sold Out'}">
+                                    Sold Out
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Action buttons -->
+                        <div class="mgmt-card-actions">
+                            <!-- Edit — navigates to edit form -->
+                            <a th:href="@{/staff/menu/{id}/edit(
+                                    id=${item.menuItemId})}"
+                               class="btn-mgmt btn-edit"
+                               th:if="${item.isActive}">
+                                <i class="bi bi-pencil"></i>
+                                Edit
+                            </a>
+
+                            <!-- Soft delete -->
+                            <!-- DELETE /api/staff/menu/{id} -->
+                            <!-- Sets is_active=false, does not remove row -->
+                            <button class="btn-mgmt btn-delete"
+                                    th:if="${item.isActive}"
+                                    th:onclick="'confirmDelete('
+                                + ${item.menuItemId}
+                                + ', \'' + ${item.itemName}
+                                + '\')'">
+                                <i class="bi bi-trash"></i>
+                                Remove
+                            </button>
+
+                            <!-- Restore soft-deleted item -->
+                            <button class="btn-mgmt btn-restore"
+                                    th:unless="${item.isActive}"
+                                    th:onclick="'restoreItem('
+                                + ${item.menuItemId}
+                                + ', \'' + ${item.itemName}
+                                + '\')'">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                                Restore
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty state -->
+                <div class="empty-state"
+                     th:if="${items.isEmpty()}">
+                    <i class="bi bi-basket2"></i>
+                    <h4>No menu items yet</h4>
+                    <p>Add your first item to get started.</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ── Delete confirm modal ──────────────── -->
+        <div class="modal fade" id="deleteModal"
+             tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content"
+                     style="border-radius:16px; border:none">
+                    <div class="modal-body p-4 text-center">
+                        <i class="bi bi-exclamation-triangle-fill
+                           text-warning"
+                           style="font-size:2.5rem"></i>
+                        <h5 class="mt-3 fw-bold"
+                            id="deleteModalTitle">
+                            Remove Item?
+                        </h5>
+                        <p class="text-muted"
+                           id="deleteModalText">
+                            This item will be hidden from the menu.
+                            Order history is preserved.
+                        </p>
+                        <div class="d-flex gap-2
+                            justify-content-center mt-3">
+                            <button class="btn btn-light px-4"
+                                    data-bs-dismiss="modal">
+                                Cancel
+                            </button>
+                            <button class="btn btn-danger px-4"
+                                    id="confirmDeleteBtn">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Toast ─────────────────────────────── -->
+        <div class="toast-container position-fixed
+            bottom-0 end-0 p-3">
+            <div id="mgmtToast"
+                 class="toast align-items-center border-0"
+                 role="alert">
+                <div class="d-flex">
+                    <div class="toast-body"
+                         id="mgmtToastMsg"></div>
+                    <button type="button"
+                            class="btn-close btn-close-white
+                           me-2 m-auto"
+                            data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        </div>
+
+    </th:block>
+</th:block>
+
+<script>
+    let deleteModal     = null;
+    let pendingDeleteId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        deleteModal = new bootstrap.Modal(
+            document.getElementById('deleteModal'));
+    });
+
+    // ── Filter functions ──────────────────────
+    function filterItems(filter, btn) {
+        setActiveFilter(btn);
+        document.querySelectorAll('.mgmt-card').forEach(card => {
+            const isActive =
+                card.dataset.active === 'true';
+            if (filter === 'all') {
+                card.style.display = '';
+            } else if (filter === 'active') {
+                card.style.display = isActive ? '' : 'none';
+            } else if (filter === 'inactive') {
+                card.style.display = !isActive ? '' : 'none';
+            }
+        });
+    }
+
+    function filterByCategory(categoryId, btn) {
+        setActiveFilter(btn);
+        document.querySelectorAll('.mgmt-card').forEach(card => {
+            card.style.display =
+                card.dataset.category == categoryId ? '' : 'none';
+        });
+    }
+
+    function setActiveFilter(activeBtn) {
+        document.querySelectorAll('.filter-pill')
+            .forEach(b => b.classList.remove('active'));
+        activeBtn.classList.add('active');
+    }
+
+    // ── UPDATE — status change ────────────────
+    // PATCH /api/staff/menu/{id}/status
+    // DATABASE OPERATION: UPDATE (partial)
+    // Updates only the status column in menu_items
+    function updateStatus(itemId, newStatus) {
+        fetch(`/api/staff/menu/${itemId}/status`, {
+            method:      'PATCH',
+            credentials: 'same-origin',
+            headers:     { 'Content-Type': 'application/json' },
+            body:        JSON.stringify({ status: newStatus })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast(
+                        `Status updated to "${newStatus}"`);
+                } else {
+                    showToast(data.message, true);
+                }
+            })
+            .catch(() => {
+                showToast('Update failed.', true);
+            });
+    }
+
+    // ── DELETE — soft delete ──────────────────
+    // DELETE /api/staff/menu/{id}
+    // DATABASE OPERATION: DELETE (soft)
+    // Sets is_active = false — row preserved in DB
+    function confirmDelete(itemId, itemName) {
+        pendingDeleteId = itemId;
+        document.getElementById('deleteModalTitle')
+            .textContent = `Remove "${itemName}"?`;
+        document.getElementById('confirmDeleteBtn')
+            .onclick = () => performDelete(itemId);
+        deleteModal.show();
+    }
+
+    function performDelete(itemId) {
+        fetch(`/api/staff/menu/${itemId}`, {
+            method:      'DELETE',
+            credentials: 'same-origin'
+        })
+            .then(r => r.json())
+            .then(data => {
+                deleteModal.hide();
+                if (data.status === 'success') {
+                    showToast('Item removed from menu.');
+                    // Reload page to reflect change
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.message, true);
+                }
+            })
+            .catch(() => {
+                showToast('Delete failed.', true);
+                deleteModal.hide();
+            });
+    }
+
+    // ── RESTORE — reactivate soft-deleted item ─
+    function restoreItem(itemId, itemName) {
+        fetch(`/api/staff/menu/${itemId}/status`, {
+            method:      'PATCH',
+            credentials: 'same-origin',
+            headers:     { 'Content-Type': 'application/json' },
+            body:        JSON.stringify({ status: 'Available' })
+        })
+            .then(() => {
+                // Also reactivate the item
+                return fetch(`/api/staff/menu/${itemId}`, {
+                    method:      'PUT',
+                    credentials: 'same-origin',
+                    headers:     { 'Content-Type': 'application/json' },
+                    body:        JSON.stringify({
+                        isActive: true,
+                        status:   'Available'
+                    })
+                });
+            })
+            .then(r => r.json())
+            .then(() => {
+                showToast(`"${itemName}" restored to menu.`);
+                setTimeout(() => location.reload(), 1000);
+            })
+            .catch(() => {
+                showToast('Restore failed.', true);
+            });
+    }
+
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('mgmtToast');
+        document.getElementById('mgmtToastMsg')
+            .textContent = message;
+        toast.style.background = isError
+            ? '#c0392b' : '#1F3864';
+        new bootstrap.Toast(toast, { delay: 3000 }).show();
+    }
+</script>
 </body>
 </html>

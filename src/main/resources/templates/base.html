@@ -1,71 +1,250 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head>
+
+<head th:fragment="head">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cafeteria System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link th:href="@{/css/custom.css}" rel="stylesheet">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} ?: 'Campus Cafeteria'">
+        Campus Cafeteria
+    </title>
+
+    <!-- Favicon placeholder -->
+    <link rel="icon" type="image/x-icon"
+          href="/images/favicon.ico">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+          rel="stylesheet">
+
+    <!-- Global stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
+
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary" sec:authorize="isAuthenticated()">
-        <div class="container">
-            <a class="navbar-brand" href="#">Cafeteria System</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+
+<!-- ═══════════════════════════════════════════
+     MAIN LAYOUT FRAGMENT
+     Every page calls this fragment and inserts
+     its own content via the ~{::content} selector
+     ═══════════════════════════════════════════ -->
+<div th:fragment="layout(content)">
+
+    <!-- ── Navbar ───────────────────────────── -->
+    <nav class="navbar navbar-expand-lg navbar-dark
+                cc-navbar sticky-top">
+        <div class="container-fluid px-4">
+
+            <!-- Brand -->
+            <a class="navbar-brand d-flex
+                       align-items-center gap-2"
+               th:href="@{/menu}">
+                <!-- Logo placeholder -->
+                <div class="brand-icon">CC</div>
+                <span class="brand-name">
+                    Campus Cafeteria
+                </span>
+            </a>
+
+            <!-- Mobile toggle -->
+            <button class="navbar-toggler border-0"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarContent">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <!-- Menu (accessible by both students and staff) -->
-                    <li class="nav-item" sec:authorize="hasAnyRole('STUDENT', 'STAFF', 'ADMIN')">
-                        <a class="nav-link" href="/customer/menu">Menu</a>
+
+            <div class="collapse navbar-collapse"
+                 id="navbarContent">
+
+                <!-- Left nav links -->
+                <ul class="navbar-nav me-auto
+                           mb-2 mb-lg-0">
+
+                    <li class="nav-item"
+                        sec:authorize="isAuthenticated()">
+                        <a class="nav-link"
+                           th:href="@{/menu}"
+                           th:classappend="${activePage == 'menu'}
+                               ? ' active' : ''">
+                            <i class="bi bi-grid me-1"></i>
+                            Menu
+                        </a>
                     </li>
 
-                    <!-- Student Navigation -->
-                    <li class="nav-item" sec:authorize="hasRole('STUDENT')">
-                        <a class="nav-link" href="/customer/history">Order History</a>
+                    <li class="nav-item"
+                        sec:authorize="isAuthenticated()">
+                        <a class="nav-link"
+                           th:href="@{/orders}"
+                           th:classappend="${activePage == 'orders'}
+                               ? ' active' : ''">
+                            <i class="bi bi-clock-history me-1"></i>
+                            My Orders
+                        </a>
                     </li>
 
-                    <!-- Staff Navigation -->
-                    <li class="nav-item" sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
-                        <a class="nav-link" href="/staff/dashboard">Dashboard</a>
+                    <!-- Staff only -->
+                    <li class="nav-item"
+                        sec:authorize="hasAnyRole('STAFF','ADMIN')">
+                        <a class="nav-link"
+                           th:href="@{/staff/dashboard}"
+                           th:classappend="${activePage == 'dashboard'}
+                               ? ' active' : ''">
+                            <i class="bi bi-speedometer2 me-1"></i>
+                            Dashboard
+                        </a>
                     </li>
-                    <li class="nav-item" sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
-                        <a class="nav-link" href="/staff/menu-management">Menu Management</a>
+
+                    <li class="nav-item"
+                        sec:authorize="hasAnyRole('STAFF','ADMIN')">
+                        <a class="nav-link"
+                           th:href="@{/staff/menu}"
+                           th:classappend="${activePage == 'staffMenu'}
+                               ? ' active' : ''">
+                            <i class="bi bi-menu-button-wide me-1"></i>
+                            Manage Menu
+                        </a>
                     </li>
+
                 </ul>
 
-                <!-- User Info and Logout -->
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
-                           data-bs-toggle="dropdown">
-                            <span sec:authentication="name"></span>
-                            (<span sec:authentication="principal.authorities[0].authority"></span>)
+                <!-- Right: cart + user -->
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0
+                           align-items-center gap-2">
+
+                    <!-- Cart — students only -->
+                    <li class="nav-item"
+                        sec:authorize="hasRole('STUDENT')">
+                        <a class="nav-link cart-link"
+                           th:href="@{/cart}">
+                            <i class="bi bi-bag me-1"></i>
+                            <span>Cart</span>
+                            <span class="cart-badge"
+                                  id="cartCount"
+                                  th:text="${cartCount ?: 0}">
+                                0
+                            </span>
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                    </li>
+
+                    <!-- User dropdown -->
+                    <li class="nav-item dropdown"
+                        sec:authorize="isAuthenticated()">
+                        <a class="nav-link dropdown-toggle
+                                  d-flex align-items-center gap-2"
+                           href="#"
+                           data-bs-toggle="dropdown">
+                            <div class="user-avatar">
+                                <span sec:authentication="name">
+                                    U
+                                </span>
+                            </div>
+                            <span class="d-none d-lg-inline"
+                                  sec:authentication="name">
+                                User
+                            </span>
+                        </a>
+                        <ul class="dropdown-menu
+                                   dropdown-menu-end shadow-sm">
+                            <li>
+                                <span class="dropdown-item-text
+                                             small text-muted">
+                                    Signed in as <strong
+                                        sec:authentication="name">
+                                    </strong>
+                                </span>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item"
+                                   th:href="@{/profile}">
+                                    <i class="bi bi-person me-2"></i>
+                                    Profile
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger"
+                                   th:href="@{/logout}">
+                                    <i class="bi bi-box-arrow-right me-2"></i>
+                                    Log out
+                                </a>
+                            </li>
                         </ul>
                     </li>
+
                 </ul>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="container mt-4">
-        <div th:replace="${content ?: 'No content defined'}"></div>
+    <!-- ── Flash messages ───────────────────── -->
+    <div class="container-fluid px-4 mt-3"
+         th:if="${successMessage != null
+             or errorMessage != null
+             or infoMessage != null}">
+        <div th:if="${successMessage}"
+             class="alert alert-success
+                    alert-dismissible fade show
+                    d-flex align-items-center gap-2">
+            <i class="bi bi-check-circle-fill"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button"
+                    class="btn-close ms-auto"
+                    data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}"
+             class="alert alert-danger
+                    alert-dismissible fade show
+                    d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button"
+                    class="btn-close ms-auto"
+                    data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${infoMessage}"
+             class="alert alert-info
+                    alert-dismissible fade show
+                    d-flex align-items-center gap-2">
+            <i class="bi bi-info-circle-fill"></i>
+            <span th:text="${infoMessage}"></span>
+            <button type="button"
+                    class="btn-close ms-auto"
+                    data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+
+    <!-- ── Main content ─────────────────────── -->
+    <main class="cc-main">
+        <th:block th:insert="${content}"/>
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-light text-center text-muted mt-5 py-3" sec:authorize="isAuthenticated()">
-        <div class="container">
-            <p>&copy; 2024 University Cafeteria System</p>
+    <!-- ── Footer ───────────────────────────── -->
+    <footer class="cc-footer">
+        <div class="container-fluid px-4">
+            <div class="d-flex justify-content-between
+                        align-items-center">
+                <span class="text-muted small">
+                    &copy; 2026 Campus Cafeteria
+                    &mdash; Group 3
+                </span>
+                <span class="text-muted small">
+                    PRT262S &mdash; CPUT
+                </span>
+            </div>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
+    </script>
+
+</div>
 </body>
 </html>
