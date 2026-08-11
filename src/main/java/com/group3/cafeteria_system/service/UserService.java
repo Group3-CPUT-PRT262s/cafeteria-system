@@ -113,16 +113,14 @@ public UserService (UserRepository userRepository, PasswordEncoder passwordEncod
     }
 
     public boolean userExists(String username) {
-        return userRepository.existsByUsername(username);
+        return userRepository.existsByUsername(normalizeUsername(username));
     }
 
     // Password Reset method
     public String generatePasswordResetToken(String email) {
         String normalizedEmail = normalizeEmail(email);
-        User user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new RuntimeException(
+        User user = userRepository.findByEmail(normalizedEmail).orElseThrow(() -> new RuntimeException(
                         "No account found with that email address."));
-
         // Remove any existing unused tokens for this user
         tokenRepository.deleteByUserId(user.getUserId());
 
