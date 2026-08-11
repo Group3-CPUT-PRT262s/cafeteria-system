@@ -1,165 +1,91 @@
 <!DOCTYPE html>
-
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In | Campus Cafeteria</title>
-
-    <link rel="stylesheet" th:href="@{/css/auth.css}">
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In | Campus Cafeteria</title>
+<link rel="stylesheet" th:href="@{/css/auth.css}">
 </head>
 <body>
+<main class="auth-wrapper">
 
-<div class="auth-wrapper">
+<section class="auth-panel auth-visual-panel" aria-hidden="true">
+<div class="visual-shape shape-1"></div>
+<div class="visual-shape shape-2"></div>
+<div class="visual-shape shape-3"></div>
 
-    <!-- LEFT VISUAL PANEL -->
-    <div class="auth-panel auth-visual-panel">
+<div class="auth-visual-content">
+<div class="auth-badge">Ordering Available</div>
+<h1>Order smarter.<br>Collect faster.</h1>
+<p>Browse meals, place your order ahead of time, and collect your food when it suits your schedule.</p>
+</div>
+</section>
 
-        <div class="visual-shape shape-1"></div>
-        <div class="visual-shape shape-2"></div>
-        <div class="visual-shape shape-3"></div>
+<section class="auth-panel auth-form-panel" aria-labelledby="login-heading">
+<div class="auth-container">
 
-        <div class="auth-visual-content">
+<header class="auth-header">
+<div class="auth-logo"><h2>Campus Cafeteria</h2></div>
+<p class="auth-kicker">Welcome Back</p>
+<h1 id="login-heading" class="auth-title">Sign in to your account</h1>
+<p class="auth-subtitle">Enter your details below to continue.</p>
+</header>
 
-            <div class="auth-badge">
-                Ordering Available
-            </div>
+<div th:if="${errorMessage}" class="auth-alert auth-alert-danger" role="alert" aria-live="polite" th:text="${errorMessage}"></div>
+<div th:if="${successMessage}" class="auth-alert auth-alert-success" role="status" aria-live="polite" th:text="${successMessage}"></div>
 
-            <h1>
-                Order smarter.<br>
-                Collect faster.
-            </h1>
+<form th:action="@{/login}" method="post" class="auth-form" id="loginForm" novalidate>
+<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 
-            <p>
-                Browse meals, place your order ahead of time,
-                and collect your food when it suits your schedule.
-            </p>
-
-        </div>
-
-    </div>
-
-    <!-- RIGHT FORM PANEL -->
-    <div class="auth-panel auth-form-panel">
-
-        <div class="auth-container">
-
-            <div class="auth-logo">
-                <h2>Campus Cafeteria</h2>
-            </div>
-
-            <div class="auth-kicker">
-                Welcome Back
-            </div>
-
-            <h1 class="auth-title">
-                Sign in to your account
-            </h1>
-
-            <p class="auth-subtitle">
-                Enter your details below to continue.
-            </p>
-
-            <div th:if="${param.error}" class="auth-alert auth-alert-danger">
-                Invalid email or password.
-            </div>
-
-            <div th:if="${param.logout}" class="auth-alert auth-alert-success">
-                You have been logged out.
-            </div>
-
-            <form th:action="@{/login}" method="post" class="auth-form">
-
-                <div class="form-group">
-                    <label class="form-label">
-                        Email Address
-                    </label>
-
-                    <input
-                            type="email"
-                            name="username"
-                            class="form-control"
-                            placeholder="student@university.edu"
-                            required>
-                </div>
-
-                <div class="form-group">
-
-                    <label class="form-label">Password</label>
-
-                    <div class="password-wrapper">
-
-                        <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                class="form-control"
-                                placeholder="Enter your password"
-                                required>
-
-                        <button
-                                type="button"
-                                class="password-toggle"
-                                onclick="togglePassword('password')">
-                            👁
-                        </button>
-
-                    </div>
-
-                </div>
-
-                <div class="auth-options">
-
-                    <label>
-                        <input type="checkbox">
-                        Remember me
-                    </label>
-
-                    <a th:href="@{/forgot-password}"
-                       class="auth-link">
-                        Forgot password?
-                    </a>
-
-                </div>
-
-                <button class="auth-submit" type="submit">
-                    Sign In
-                </button>
-
-            </form>
-
-            <div class="auth-divider">
-                OR
-            </div>
-
-            <button class="google-btn">
-                Continue with Google
-            </button>
-
-            <div class="auth-footer">
-                Don't have an account?
-                <a th:href="@{/register}" class="auth-link">
-                    Create Account
-                </a>
-            </div>
-
-        </div>
-
-    </div>
-    ```
-
+<div class="form-group">
+<label class="form-label" for="username">Username</label>
+<input id="username" type="text" name="username" class="form-control" placeholder="Enter your username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
 </div>
 
-<script>
-    function togglePassword(id) {
-        const field = document.getElementById(id);
-        field.type =
-            field.type === 'password'
-                ? 'text'
-                : 'password';
-    }
-</script>
+<div class="form-group">
+<label class="form-label" for="password">Password</label>
+<div class="password-wrapper">
+<input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" autocomplete="current-password" required>
+<button type="button" class="password-toggle" aria-label="Show password" aria-controls="password" aria-pressed="false">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+</button>
+</div>
+</div>
 
+<div class="auth-options">
+<a th:href="@{/forgot-password}" class="auth-link">Forgot password?</a>
+</div>
+
+<button class="auth-submit" id="submitBtn" type="submit">Sign In</button>
+</form>
+
+<div class="auth-divider">OR</div>
+<button class="google-btn" type="button" disabled aria-disabled="true">Continue with Google (Coming Soon)</button>
+
+<footer class="auth-footer">
+Don't have an account?
+<a th:href="@{/register}" class="auth-link">Create Account</a>
+</footer>
+
+</div>
+</section>
+</main>
+
+<script>
+const toggle=document.querySelector('.password-toggle');
+const field=document.getElementById('password');
+toggle.addEventListener('click',()=>{
+ const show=field.type==='password';
+ field.type=show?'text':'password';
+ toggle.setAttribute('aria-pressed',show);
+ toggle.setAttribute('aria-label',show?'Hide password':'Show password');
+});
+document.getElementById('loginForm').addEventListener('submit',()=>{
+ const btn=document.getElementById('submitBtn');
+ btn.disabled=true;
+ btn.dataset.original=btn.textContent;
+ btn.textContent='Signing in...';
+});
+</script>
 </body>
 </html>

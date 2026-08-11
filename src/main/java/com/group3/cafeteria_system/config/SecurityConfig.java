@@ -1,6 +1,5 @@
 package com.group3.cafeteria_system.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -8,6 +7,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -17,11 +17,13 @@ import com.group3.cafeteria_system.service.UserService;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+    private final PasswordEncoder passwordEncoder;  // injected from PasswordEncoderConfig
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;  // injected from PasswordEncoderConfig
+    public SecurityConfig(UserService userService, PasswordEncoder passwordEncoder) {
+        this.userService = userService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
@@ -41,14 +43,28 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http)
             throws Exception {
 
-        http
-                .authenticationProvider(authenticationProvider())
-
+        http.authenticationProvider(authenticationProvider())
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/register", "/css/**", "/js/**",
-                                "/images/**", "/h2-console/**").permitAll()
-                        .requestMatchers("/staff/**")
-                        .hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(
+                                "/",
+                                "/login",
+                                "/register",
+                                "/forgot-password",
+                                "/reset-password",
+                                "/api/auth/**",
+                                "/api/menu/**",
+                                "/api/categories",
+                                "/api/time-slots",
+                                "/api/cart/**",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**"
+                        ).permitAll()
+                        .requestMatchers(
+                                "/staff/**",
+                                "/api/staff/**"
+                        ).hasAnyRole("STAFF", "ADMIN")
                         .anyRequest().authenticated()
                 )
 
@@ -69,11 +85,26 @@ public class SecurityConfig {
                 )
 
                 .headers(headers -> headers
-                        .frameOptions(frame -> frame.sameOrigin())
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                 )
 
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/h2-console/**")
+                )
+
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(
+                                (request, response, authException) -> {
+                                    if (request.getRequestURI().startsWith("/api/")) {
+                                        response.setStatus(401);
+                                        response.setContentType("application/json");
+                                        response.getWriter().write(
+                                                "{\"error\": \"Unauthorised. Please log in.\"}"
+                                        );
+                                    } else {
+                                        response.sendRedirect("/login");
+                                    }
+                                })
                 )
         ;
 
