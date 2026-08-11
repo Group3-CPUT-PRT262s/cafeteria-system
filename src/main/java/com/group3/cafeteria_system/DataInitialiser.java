@@ -10,8 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DataInitialiser implements CommandLineRunner {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(DataInitialiser.class);
+    private static final Logger logger = LoggerFactory.getLogger(DataInitialiser.class);
 
     private static final String PASSWORD_CHARACTERS =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
@@ -28,7 +27,7 @@ public class DataInitialiser implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
 
         /*
          * Creates the main admin account if one does not already exist.
