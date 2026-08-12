@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{base :: head}"></th:block>
+    <title th:text="${pageTitle}">Settings</title>
+    <style>
+        .settings-grid {
+            display:               grid;
+            grid-template-columns: repeat(auto-fit,
+            minmax(340px, 1fr));
+            gap:                   1.5rem;
+            padding-bottom:        2rem;
+        }
+        .settings-card {
+            background:    #fff;
+            border:        1px solid var(--cc-border);
+            border-radius: 16px;
+            padding:       1.5rem;
+        }
+        .settings-card-title {
+            font-size:     1rem;
+            font-weight:   700;
+            color:         var(--cc-navy);
+            margin-bottom: 1.25rem;
+            display:       flex;
+            align-items:   center;
+            gap:           8px;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--cc-border);
+        }
+        .settings-list {
+            list-style: none;
+            padding:    0;
+            margin:     0 0 1rem;
+        }
+        .settings-list li {
+            display:         flex;
+            justify-content: space-between;
+            align-items:     center;
+            padding:         0.6rem 0;
+            border-bottom:   1px solid var(--cc-border);
+            font-size:       0.875rem;
+        }
+        .settings-list li:last-child {
+            border-bottom: none;
+        }
+        .settings-list .item-name {
+            font-weight: 600;
+            color:       var(--cc-text);
+        }
+        .settings-list .item-meta {
+            color:     var(--cc-muted);
+            font-size: 0.78rem;
+        }
+        .btn-icon {
+            border:        none;
+            background:    none;
+            cursor:        pointer;
+            padding:       4px 8px;
+            border-radius: 6px;
+            transition:    all 0.15s;
+            font-size:     0.85rem;
+        }
+        .btn-icon-danger:hover {
+            background: #fce4d6;
+            color:      #c0392b;
+        }
+        .btn-icon-toggle {
+            color:      #155724;
+            background: #d4edda;
+            border-radius: 20px;
+            padding:    2px 10px;
+            font-size:  0.72rem;
+            font-weight: 600;
+        }
+        .btn-icon-toggle.inactive {
+            color:      #856404;
+            background: #fff3cd;
+        }
+        .add-form {
+            display:    flex;
+            gap:        8px;
+            margin-top: 0.75rem;
+        }
+        .add-form input,
+        .add-form select {
+            flex:          1;
+            border:        1.5px solid var(--cc-border);
+            border-radius: 10px;
+            padding:       0.45rem 0.75rem;
+            font-size:     0.85rem;
+            background:    #f8fafd;
+        }
+        .add-form input:focus,
+        .add-form select:focus {
+            outline:      none;
+            border-color: var(--cc-navy);
+        }
+        .btn-add {
+            padding:       0.45rem 1rem;
+            background:    var(--cc-navy);
+            color:         #fff;
+            border:        none;
+            border-radius: 10px;
+            font-size:     0.82rem;
+            font-weight:   600;
+            cursor:        pointer;
+            white-space:   nowrap;
+            transition:    all 0.15s;
+        }
+        .btn-add:hover { background: #162d52; }
+        .role-badge {
+            font-size:     0.7rem;
+            font-weight:   600;
+            padding:       0.2rem 0.55rem;
+            border-radius: 20px;
+        }
+        .role-ADMIN   { background:#cfe2ff; color:#084298; }
+        .role-STAFF   { background:#d1ecf1; color:#0c5460; }
+        .role-STUDENT { background:#e2e3e5; color:#383d41; }
+        #settingsToast {
+            background:    var(--cc-navy);
+            color:         #fff;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body th:replace="~{base :: layout}">
+
+<th:block th:fragment="content">
+    <div class="container-fluid px-4">
+
+        <div class="page-header">
+            <h1>System Settings</h1>
+            <p>Manage categories, time slots, and users</p>
+        </div>
+
+        <div class="settings-grid">
+
+            <!-- ── Categories ───────────────── -->
+            <div class="settings-card">
+                <div class="settings-card-title">
+                    <i class="bi bi-tags"></i>
+                    Menu Categories
+                </div>
+
+                <ul class="settings-list"
+                    id="categoriesList">
+                    <li th:each="cat : ${categories}">
+                        <div>
+                            <div class="item-name"
+                                 th:text="${cat.categoryName}">
+                            </div>
+                            <div class="item-meta"
+                                 th:text="'ID: '
+                                 + ${cat.categoryId}">
+                            </div>
+                        </div>
+                        <button class="btn-icon
+                                   btn-icon-danger"
+                                th:onclick="'deleteCategory('
+                                + ${cat.categoryId}
+                                + ', \''
+                                + ${cat.categoryName}
+                                + '\')'">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="add-form">
+                    <input type="text"
+                           id="newCategoryName"
+                           placeholder="Category name">
+                    <button class="btn-add"
+                            onclick="addCategory()">
+                        <i class="bi bi-plus-lg me-1"></i>Add
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Time Slots ────────────────── -->
+            <div class="settings-card">
+                <div class="settings-card-title">
+                    <i class="bi bi-clock"></i>
+                    Pickup Time Slots
+                </div>
+
+                <ul class="settings-list"
+                    id="slotsList">
+                    <li th:each="slot : ${timeSlots}">
+                        <div>
+                            <div class="item-name"
+                                 th:text="${slot.slotTime}">
+                            </div>
+                            <div class="item-meta"
+                                 th:text="'Max orders: '
+                                 + ${slot.maxOrders}">
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center
+                                gap-2">
+                            <button class="btn-icon-toggle"
+                                    th:classappend="${!slot.isActive}
+                                    ? ' inactive' : ''"
+                                    th:text="${slot.isActive}
+                                    ? 'Active' : 'Inactive'"
+                                    th:onclick="'toggleSlot('
+                                    + ${slot.timeSlotId}
+                                    + ', this)'">
+                            </button>
+                            <button class="btn-icon
+                                       btn-icon-danger"
+                                    th:onclick="'deleteSlot('
+                                    + ${slot.timeSlotId}
+                                    + ')'">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="add-form">
+                    <input type="time"
+                           id="newSlotTime"
+                           placeholder="12:00">
+                    <input type="number"
+                           id="newSlotMax"
+                           placeholder="Max orders"
+                           value="20"
+                           min="1"
+                           style="max-width:110px">
+                    <button class="btn-add"
+                            onclick="addSlot()">
+                        <i class="bi bi-plus-lg me-1"></i>Add
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Users ─────────────────────── -->
+            <div class="settings-card"
+                 style="grid-column: 1 / -1">
+                <div class="settings-card-title">
+                    <i class="bi bi-people"></i>
+                    User Management
+                </div>
+
+                <ul class="settings-list">
+                    <li th:each="user : ${users}">
+                        <div>
+                            <div class="item-name"
+                                 th:text="${user.username}">
+                            </div>
+                            <div class="item-meta"
+                                 th:text="${user.email
+                                 ?: 'No email set'}">
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center
+                                gap-2">
+                        <span class="role-badge"
+                              th:classappend="'role-'
+                                  + ${user.role}"
+                              th:text="${user.role}">
+                        </span>
+                            <select class="add-form"
+                                    style="max-width:110px;
+                                       margin:0;flex:none"
+                                    th:onchange="'updateRole('
+                                    + ${user.userId}
+                                    + ', this.value)'">
+                                <option value="STUDENT"
+                                        th:selected="${user.role
+                                        == 'STUDENT'}">
+                                    STUDENT
+                                </option>
+                                <option value="STAFF"
+                                        th:selected="${user.role
+                                        == 'STAFF'}">
+                                    STAFF
+                                </option>
+                                <option value="ADMIN"
+                                        th:selected="${user.role
+                                        == 'ADMIN'}">
+                                    ADMIN
+                                </option>
+                            </select>
+                        </div>
+                    </li>
+                </ul>
+
+                <!-- Create new staff/admin account -->
+                <div class="settings-card-title mt-3"
+                     style="font-size:0.875rem">
+                    <i class="bi bi-person-plus"></i>
+                    Create Staff or Admin Account
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-2">
+                        <input type="text"
+                               class="add-form"
+                               id="newUsername"
+                               placeholder="Username"
+                               style="width:100%;margin:0">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="password"
+                               class="add-form"
+                               id="newPassword"
+                               placeholder="Password"
+                               style="width:100%;margin:0">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text"
+                               class="add-form"
+                               id="newFirstName"
+                               placeholder="First name"
+                               style="width:100%;margin:0">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text"
+                               class="add-form"
+                               id="newLastName"
+                               placeholder="Last name"
+                               style="width:100%;margin:0">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="email"
+                               class="add-form"
+                               id="newEmail"
+                               placeholder="Email"
+                               style="width:100%;margin:0">
+                    </div>
+                    <div class="col-md-1">
+                        <select class="add-form"
+                                id="newRole"
+                                style="width:100%;margin:0">
+                            <option value="STAFF">STAFF</option>
+                            <option value="ADMIN">ADMIN</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn-add"
+                                style="width:100%"
+                                onclick="createUser()">
+                            Create
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container position-fixed
+            bottom-0 end-0 p-3">
+        <div id="settingsToast"
+             class="toast align-items-center border-0"
+             role="alert">
+            <div class="d-flex">
+                <div class="toast-body"
+                     id="settingsToastMsg"></div>
+                <button type="button"
+                        class="btn-close btn-close-white
+                           me-2 m-auto"
+                        data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<script>
+    // ── CATEGORIES ────────────────────────────
+
+    // CREATE — POST /api/staff/categories
+    // Inserts new row into categories table
+    function addCategory() {
+        const name = document.getElementById(
+            'newCategoryName').value.trim();
+        if (!name) {
+            showToast('Please enter a category name.', true);
+            return;
+        }
+        fetch('/api/staff/categories', {
+            method:      'POST',
+            credentials: 'same-origin',
+            headers:     { 'Content-Type': 'application/json' },
+            body:        JSON.stringify({ categoryName: name })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('Category added.');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.message, true);
+                }
+            });
+    }
+
+    // DELETE — DELETE /api/staff/categories/{id}
+    function deleteCategory(id, name) {
+        if (!confirm(`Delete category "${name}"?\n` +
+            'Make sure no menu items use this category.')) {
+            return;
+        }
+        fetch(`/api/staff/categories/${id}`, {
+            method:      'DELETE',
+            credentials: 'same-origin'
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('Category deleted.');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.message, true);
+                }
+            });
+    }
+
+    // ── TIME SLOTS ────────────────────────────
+
+    // CREATE — POST /api/staff/time-slots
+    function addSlot() {
+        const slotTime  = document.getElementById(
+            'newSlotTime').value;
+        const maxOrders = parseInt(document.getElementById(
+            'newSlotMax').value) || 20;
+
+        if (!slotTime) {
+            showToast('Please select a time.', true);
+            return;
+        }
+        fetch('/api/staff/time-slots', {
+            method:      'POST',
+            credentials: 'same-origin',
+            headers:     { 'Content-Type': 'application/json' },
+            body:        JSON.stringify({
+                slotTime:  slotTime,
+                maxOrders: maxOrders
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('Time slot added.');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.message, true);
+                }
+            });
+    }
+
+    // UPDATE — PATCH /api/staff/time-slots/{id}/toggle
+    function toggleSlot(id, btn) {
+        fetch(`/api/staff/time-slots/${id}/toggle`, {
+            method:      'PATCH',
+            credentials: 'same-origin'
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const isActive = data.isActive;
+                    btn.textContent = isActive
+                        ? 'Active' : 'Inactive';
+                    btn.classList.toggle('inactive', !isActive);
+                    showToast(isActive
+                        ? 'Slot activated.'
+                        : 'Slot deactivated.');
+                } else {
+                    showToast(data.message, true);
+                }
+            });
+    }
+
+    // DELETE — DELETE /api/staff/time-slots/{id}
+    function deleteSlot(id) {
+        if (!confirm('Delete this time slot?')) return;
+        fetch(`/api/staff/time-slots/${id}`, {
+            method:      'DELETE',
+            credentials: 'same-origin'
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('Time slot deleted.');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.message, true);
+                }
+            });
+    }
+
+    // ── USERS ─────────────────────────────────
+
+    // UPDATE — PATCH /api/staff/users/{id}/role
+    function updateRole(userId, newRole) {
+        fetch(`/api/staff/users/${userId}/role`, {
+            method:      'PATCH',
+            credentials: 'same-origin',
+            headers:     { 'Content-Type': 'application/json' },
+            body:        JSON.stringify({ role: newRole })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('Role updated to ' + newRole + '.');
+                } else {
+                    showToast(data.message, true);
+                }
+            });
+    }
+
+    // CREATE — POST /api/staff/users
+    function createUser() {
+        const username  = document.getElementById(
+            'newUsername').value.trim();
+        const password  = document.getElementById(
+            'newPassword').value;
+        const firstName = document.getElementById(
+            'newFirstName').value.trim();
+        const lastName  = document.getElementById(
+            'newLastName').value.trim();
+        const email     = document.getElementById(
+            'newEmail').value.trim();
+        const role      = document.getElementById(
+            'newRole').value;
+
+        if (!username || !password || !email) {
+            showToast(
+                'Username, password and email are required.',
+                true);
+            return;
+        }
+
+        fetch('/api/staff/users', {
+            method:      'POST',
+            credentials: 'same-origin',
+            headers:     { 'Content-Type': 'application/json' },
+            body:        JSON.stringify({
+                username, password,
+                firstName, lastName,
+                email, role
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast(`User "${username}" created.`);
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    showToast(data.message, true);
+                }
+            });
+    }
+
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('settingsToast');
+        document.getElementById('settingsToastMsg')
+            .textContent = message;
+        toast.style.background = isError
+            ? '#c0392b' : '#1F3864';
+        new bootstrap.Toast(toast, { delay: 3000 }).show();
+    }
+</script>
+</body>
+</html>

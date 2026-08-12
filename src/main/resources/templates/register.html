@@ -1,133 +1,776 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Create Account | Campus Cafeteria</title>
-<link rel="stylesheet" th:href="@{/css/auth.css}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Create Account | Campus Cafeteria</title>
+
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
 </head>
+
 <body>
 
 <main class="auth-wrapper">
 
-<section class="auth-panel auth-form-panel" aria-labelledby="register-heading">
+    <!-- Registration Form -->
+    <section class="auth-panel auth-form-panel"
+             aria-labelledby="register-heading">
 
-<div class="auth-container">
+        <div class="auth-container">
 
-<header class="auth-header">
-<div class="auth-logo"><h2>Campus Cafeteria</h2></div>
-<p class="auth-kicker">Join Today</p>
-<h1 id="register-heading" class="auth-title">Create your account</h1>
-<p class="auth-subtitle">Register to start ordering meals online.</p>
-</header>
+            <header class="auth-header">
 
-<div th:if="${errorMessage}" class="auth-alert auth-alert-danger" role="alert" aria-live="polite" th:text="${errorMessage}"></div>
-<div th:if="${successMessage}" class="auth-alert auth-alert-success" role="status" aria-live="polite" th:text="${successMessage}"></div>
+                <div class="auth-logo">
+                    <h2>Campus Cafeteria</h2>
+                </div>
 
-<form th:action="@{/register}" method="post" class="auth-form" id="registerForm" novalidate>
-<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <p class="auth-kicker">Join Today</p>
 
-<div class="form-row">
-<div class="form-group">
-<label class="form-label" for="firstName">First Name</label>
-<input id="firstName" name="firstName" type="text" class="form-control" autocomplete="given-name" required>
-</div>
+                <h1 id="register-heading"
+                    class="auth-title">
+                    Create your account
+                </h1>
 
-<div class="form-group">
-<label class="form-label" for="lastName">Last Name</label>
-<input id="lastName" name="lastName" type="text" class="form-control" autocomplete="family-name" required>
-</div>
-</div>
+                <p class="auth-subtitle">
+                    Register to start ordering meals online.
+                </p>
 
-<div class="form-group">
-<label class="form-label" for="username">Username</label>
-<input id="username" name="username" type="text" class="form-control" autocomplete="username" spellcheck="false" required>
-<small class="form-feedback">Choose a unique username using letters and numbers.</small>
-</div>
+            </header>
 
-<div class="form-group">
-<label class="form-label" for="email">Email Address</label>
-<input id="email" name="email" type="email" class="form-control" autocomplete="email" required>
-<small class="form-feedback"></small>
-</div>
 
-<div class="form-group">
-<label class="form-label" for="regPassword">Password</label>
-<div class="password-wrapper">
-<input id="regPassword" name="password" type="password" class="form-control" autocomplete="new-password" required>
-<button type="button" class="password-toggle" data-target="regPassword" aria-label="Show password">
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-</button>
-</div>
+            <!-- Server-side error -->
+            <div th:if="${errorMessage}"
+                 class="auth-alert auth-alert-danger"
+                 role="alert"
+                 aria-live="polite"
+                 th:text="${errorMessage}">
+            </div>
 
-<div class="password-strength">
-<div class="strength-bar"><div class="strength-fill"></div></div>
-<div class="strength-text">Password strength</div>
-</div>
 
-<!-- <ul class="password-checklist">
-<li>At least 8 characters</li>
-<li>One uppercase letter</li>
-<li>One lowercase letter</li>
-<li>One number</li>
-<li>One special character</li>
-</ul> -->
+            <!-- Server-side success -->
+            <div th:if="${successMessage}"
+                 class="auth-alert auth-alert-success"
+                 role="status"
+                 aria-live="polite"
+                 th:text="${successMessage}">
+            </div>
 
-</div>
 
-<div class="form-group">
-<label class="form-label" for="confirmPassword">Confirm Password</label>
-<div class="password-wrapper">
-<input id="confirmPassword" name="confirmPassword" type="password" class="form-control" autocomplete="new-password" required>
-<button type="button" class="password-toggle" data-target="confirmPassword" aria-label="Show password">
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-</button>
-</div>
-<small class="form-feedback" id="passwordMatch"></small>
-</div>
+            <!-- Registration Form -->
+            <form th:action="@{/register}"
+                  method="post"
+                  class="auth-form"
+                  id="registerForm"
+                  novalidate>
 
-<button class="auth-submit" id="registerButton" type="submit">Create Account</button>
+                <!-- CSRF token -->
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}"/>
 
-</form>
 
-<div class="auth-divider">OR</div>
+                <!-- First Name / Last Name -->
+                <div class="form-row">
 
-<button type="button" class="google-btn" disabled>Continue with Google (Coming Soon)</button>
+                    <div class="form-group">
 
-<footer class="auth-footer">
-Already have an account?
-<a th:href="@{/login}" class="auth-link">Sign In</a>
-</footer>
+                        <label class="form-label"
+                               for="firstName">
+                            First Name
+                        </label>
 
-</div>
-</section>
+                        <input id="firstName"
+                               name="firstName"
+                               type="text"
+                               class="form-control"
+                               autocomplete="given-name"
+                               required>
 
-<section class="auth-panel auth-visual-panel" aria-hidden="true">
-<div class="visual-shape shape-1"></div>
-<div class="visual-shape shape-2"></div>
-<div class="visual-shape shape-3"></div>
-<div class="auth-visual-content">
-<div class="auth-badge">New Accounts Welcome</div>
-<h1>Fresh meals.<br>Ready when you are.</h1>
-<p>Join Campus Cafeteria and place orders ahead of time from anywhere on campus.</p>
-</div>
-</section>
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="form-label"
+                               for="lastName">
+                            Last Name
+                        </label>
+
+                        <input id="lastName"
+                               name="lastName"
+                               type="text"
+                               class="form-control"
+                               autocomplete="family-name"
+                               required>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Username -->
+                <div class="form-group">
+
+                    <label class="form-label"
+                           for="username">
+                        Username
+                    </label>
+
+                    <input id="username"
+                           name="username"
+                           type="text"
+                           class="form-control"
+                           autocomplete="username"
+                           spellcheck="false"
+                           required>
+
+                    <small class="form-feedback">
+                        Use 3-20 characters containing letters, numbers,
+                        or underscores.
+                    </small>
+
+                </div>
+
+
+                <!-- Email -->
+                <div class="form-group">
+
+                    <label class="form-label"
+                           for="email">
+                        Email Address
+                    </label>
+
+                    <input id="email"
+                           name="email"
+                           type="email"
+                           class="form-control"
+                           autocomplete="email"
+                           required>
+
+                    <small class="form-feedback"
+                           id="emailFeedback">
+                    </small>
+
+                </div>
+
+
+                <!-- Password -->
+                <div class="form-group">
+
+                    <label class="form-label"
+                           for="regPassword">
+                        Password
+                    </label>
+
+                    <div class="password-wrapper">
+
+                        <input id="regPassword"
+                               name="password"
+                               type="password"
+                               class="form-control"
+                               autocomplete="new-password"
+                               required>
+
+                        <button type="button"
+                                class="password-toggle"
+                                data-target="regPassword"
+                                aria-label="Show password">
+
+                            <svg width="20"
+                                 height="20"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 aria-hidden="true">
+
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
+                                <circle cx="12"
+                                        cy="12"
+                                        r="3"/>
+
+                            </svg>
+
+                        </button>
+
+                    </div>
+
+
+                    <!-- Password strength -->
+                    <div class="password-strength">
+
+                        <div class="strength-bar">
+                            <div class="strength-fill"></div>
+                        </div>
+
+                        <div class="strength-text">
+                            Password strength
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Confirm Password -->
+                <div class="form-group">
+
+                    <label class="form-label"
+                           for="confirmPassword">
+                        Confirm Password
+                    </label>
+
+                    <div class="password-wrapper">
+
+                        <input id="confirmPassword"
+                               name="confirmPassword"
+                               type="password"
+                               class="form-control"
+                               autocomplete="new-password"
+                               required>
+
+                        <button type="button"
+                                class="password-toggle"
+                                data-target="confirmPassword"
+                                aria-label="Show password">
+
+                            <svg width="20"
+                                 height="20"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 aria-hidden="true">
+
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
+                                <circle cx="12"
+                                        cy="12"
+                                        r="3"/>
+
+                            </svg>
+
+                        </button>
+
+                    </div>
+
+                    <small class="form-feedback"
+                           id="passwordMatch">
+                    </small>
+
+                </div>
+
+
+                <!-- General registration error -->
+                <div id="regError"
+                     class="auth-alert auth-alert-danger"
+                     role="alert"
+                     aria-live="polite"
+                     style="display: none;">
+                </div>
+
+
+                <!-- Submit -->
+                <button type="submit" class="btn btn-lg w-100 auth-submit">
+                    Create Account
+                </button>
+
+            </form>
+
+
+            <!-- Divider -->
+            <div class="auth-divider">
+                OR
+            </div>
+
+
+            <!-- Google login -->
+            <button type="button"
+                    class="google-btn"
+                    disabled>
+
+                Continue with Google (Coming Soon)
+
+            </button>
+
+
+            <!-- Login link -->
+            <footer class="auth-footer">
+
+                Already have an account?
+
+                <a th:href="@{/login}"
+                   class="auth-link">
+                    Sign In
+                </a>
+
+            </footer>
+
+        </div>
+
+    </section>
+
+
+    <!-- Visual Panel -->
+    <section class="auth-panel auth-visual-panel"
+             aria-hidden="true">
+
+        <div class="visual-shape shape-1"></div>
+        <div class="visual-shape shape-2"></div>
+        <div class="visual-shape shape-3"></div>
+
+        <div class="auth-visual-content">
+
+            <div class="auth-badge">
+                New Accounts Welcome
+            </div>
+
+            <h1>
+                Fresh meals.<br>
+                Ready when you are.
+            </h1>
+
+            <p>
+                Join Campus Cafeteria and place orders ahead of time
+                from anywhere on campus.
+            </p>
+
+        </div>
+
+    </section>
 
 </main>
 
-<script>
-document.querySelectorAll('.password-toggle').forEach(btn=>{
- btn.addEventListener('click',()=>{
-   const input=document.getElementById(btn.dataset.target);
-   input.type=input.type==='password'?'text':'password';
- });
-});
 
-document.getElementById('registerForm').addEventListener('submit',()=>{
- const btn=document.getElementById('registerButton');
- btn.disabled=true;
- btn.textContent='Creating Account...';
-});
+<script>
+
+    /*
+     * Registration form
+     */
+    const registerForm = document.getElementById('registerForm');
+    const submitButton = document.querySelector('.auth-submit');
+
+
+    /*
+     * Password fields
+     */
+    const passwordInput =
+        document.getElementById('regPassword');
+
+    const confirmPasswordInput =
+        document.getElementById('confirmPassword');
+
+
+    /*
+     * Password strength elements
+     */
+    const strengthFill =
+        document.querySelector('.strength-fill');
+
+    const strengthText =
+        document.querySelector('.strength-text');
+
+    const passwordMatch =
+        document.getElementById('passwordMatch');
+
+
+    /*
+     * General error element
+     */
+    const errorElement =
+        document.getElementById('regError');
+
+
+    /*
+     * Password visibility toggles
+     */
+    document.querySelectorAll('.password-toggle')
+        .forEach(button => {
+
+            button.addEventListener('click', () => {
+
+                const targetId =
+                    button.dataset.target;
+
+                const input =
+                    document.getElementById(targetId);
+
+                if (!input) {
+                    return;
+                }
+
+                if (input.type === 'password') {
+
+                    input.type = 'text';
+
+                    button.setAttribute(
+                        'aria-label',
+                        'Hide password'
+                    );
+
+                } else {
+
+                    input.type = 'password';
+
+                    button.setAttribute(
+                        'aria-label',
+                        'Show password'
+                    );
+                }
+
+            });
+
+        });
+
+
+    /*
+     * Password strength
+     */
+    passwordInput.addEventListener(
+        'input',
+        updatePasswordStrength
+    );
+
+
+    function updatePasswordStrength() {
+
+        const password =
+            passwordInput.value;
+
+        let score = 0;
+
+        if (password.length >= 8) {
+            score++;
+        }
+
+        if (password.length >= 12) {
+            score++;
+        }
+
+        if (/[a-z]/.test(password) &&
+            /[A-Z]/.test(password)) {
+
+            score++;
+        }
+
+        if (/[0-9]/.test(password)) {
+            score++;
+        }
+
+        if (/[^A-Za-z0-9]/.test(password)) {
+            score++;
+        }
+
+
+        if (password.length === 0) {
+
+            strengthText.textContent =
+                'Password strength';
+
+            strengthFill.style.width = '0%';
+
+        } else if (score <= 1) {
+
+            strengthText.textContent =
+                'Weak password';
+
+            strengthFill.style.width = '25%';
+
+        } else if (score === 2) {
+
+            strengthText.textContent =
+                'Fair password';
+
+            strengthFill.style.width = '50%';
+
+        } else if (score === 3 || score === 4) {
+
+            strengthText.textContent =
+                'Good password';
+
+            strengthFill.style.width = '75%';
+
+        } else {
+
+            strengthText.textContent =
+                'Strong password';
+
+            strengthFill.style.width = '100%';
+
+        }
+
+    }
+
+
+    /*
+     * Password confirmation feedback
+     */
+    confirmPasswordInput.addEventListener(
+        'input',
+        checkPasswordMatch
+    );
+
+
+    passwordInput.addEventListener(
+        'input',
+        checkPasswordMatch
+    );
+
+
+    function checkPasswordMatch() {
+
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+
+
+        if (confirmPassword.length === 0) {
+            passwordMatch.textContent = '';
+            return;
+
+        }
+
+
+        if (password === confirmPassword) {
+            passwordMatch.textContent = 'Passwords match.';
+        } else {
+            passwordMatch.textContent = 'Passwords do not match.';
+        }
+
+    }
+
+
+    /*
+     * Submit registration form
+     */
+    registerForm.addEventListener(
+        'submit',
+        submitRegistration
+    );
+
+
+    async function submitRegistration(event) {
+
+        event.preventDefault();
+        clearErrors();
+
+        /*
+         * Get form values
+         */
+        const firstName = document.getElementById('firstName').value.trim();
+
+        const lastName = document.getElementById('lastName').value.trim();
+
+        const username = document.getElementById('username').value.trim();
+
+        const email = document.getElementById('email').value.trim();
+
+        const password = document.getElementById('regPassword').value;
+
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+
+        /*
+         * Basic required-field validation
+         */
+        if (!firstName || !lastName || !username || !email || !password || !confirmPassword) {
+
+            showError(
+                'Please complete all required fields.'
+            );
+
+            return;
+        }
+
+
+        /*
+         * Username validation
+         *
+         * 3-20 characters
+         * Letters, numbers and underscores only
+         */
+        const usernamePattern =
+            /^[a-zA-Z0-9_]{3,20}$/;
+
+        if (!usernamePattern.test(username)) {
+
+            showError(
+                'Username must be 3-20 characters and can only contain letters, numbers, and underscores.'
+            );
+
+            return;
+        }
+
+
+        /*
+         * Email validation
+         */
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailPattern.test(email)) {
+
+            showError(
+                'Please enter a valid email address.'
+            );
+
+            return;
+        }
+
+
+        /*
+         * Password length
+         */
+        if (password.length < 8) {
+            showError(
+                'Password must be at least 8 characters.'
+            );
+
+            return;
+        }
+
+
+        /*
+         * Password confirmation
+         */
+        if (password !== confirmPassword) {
+
+            showError('Passwords do not match.'
+            );
+            return;
+        }
+
+
+        /*
+         * Get Spring Security CSRF token
+         */
+        const csrfInput =
+            document.querySelector('input[name="_csrf"]'
+            );
+
+
+        if (!csrfInput) {
+
+            showError(
+                'Security token could not be found. Please refresh the page and try again.'
+            );
+
+            return;
+        }
+
+
+        const csrfToken =
+            csrfInput.value;
+
+
+        /*
+         * Disable button while request is processing
+         */
+        submitButton.disabled = true;
+
+        submitButton.textContent =
+            'Creating account...';
+
+
+        try {
+
+            /*
+             * Send registration request to REST API
+             */
+            const response =
+                await fetch(
+                    '/api/auth/register',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        },
+
+                        body: JSON.stringify({
+                            username: username,
+                            password: password,
+                            confirmPassword: confirmPassword,
+                            firstName: firstName,
+                            lastName: lastName,
+                            email: email
+                        })
+                    }
+                );
+
+
+            /*
+             * Try to parse the response
+             */
+            let data = {};
+
+            try {
+                data = await response.json();
+            } catch (error) {
+                data = {};
+            }
+
+
+            /*
+             * Successful registration
+             */
+            if (response.ok && (data.status === 'success' || data.message?.toLowerCase().includes('successfully'))) {
+                window.location.href = '/login?registered=true';
+                return;
+            }
+
+
+            /*
+             * Registration failed
+             */
+            showError(data.message || data.error || 'Registration failed. Please check your details and try again.'
+            );
+
+
+        } catch (error) {
+
+            /*
+             * Network/server error
+             */
+            showError(
+                'Something went wrong. Please try again.'
+            );
+
+        } finally {
+
+            /*
+             * Re-enable button if registration
+             * did not redirect
+             */
+            submitButton.disabled = false;
+            submitButton.textContent = 'Create Account';
+        }
+
+    }
+
+
+    /*
+     * Display registration error
+     */
+    function showError(message) {
+
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+        errorElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest'
+        });
+
+    }
+
+    /*
+     * Clear registration error
+     */
+    function clearErrors() {
+        errorElement.textContent = '';
+        errorElement.style.display = 'none';
+    }
+
 </script>
 
 </body>

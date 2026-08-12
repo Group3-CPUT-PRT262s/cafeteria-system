@@ -82,8 +82,7 @@ public class AuthController {
             Model model) {
 
         if (token == null || token.isBlank()) {
-            model.addAttribute(ERROR_MESSAGE_ATTRIBUTE,
-                    "Invalid reset link. Please request a new one.");
+            model.addAttribute(ERROR_MESSAGE_ATTRIBUTE, "Invalid reset link. Please request a new one.");
         } else {
             model.addAttribute("token", token);
         }
@@ -131,15 +130,12 @@ public class AuthController {
         try {
             // Authenticate against the database
             Authentication auth =
-                    authenticationManager.authenticate(
-                            new UsernamePasswordAuthenticationToken(
-                                    username, password));
+                    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 
             // Store in security context
-            SecurityContextHolder.getContext()
-                    .setAuthentication(auth);
+            SecurityContextHolder.getContext().setAuthentication(auth);
 
-            // Bind to HTTP session so subsequent
+            // Bind to HTTP session so later
             // requests in Postman are authenticated
             session.setAttribute(
                     HttpSessionSecurityContextRepository
@@ -235,34 +231,23 @@ public class AuthController {
         String email     = body.getOrDefault(
                 "email",     "").trim();
 
-        // ── Validation ────────────────────────
+        // User validation
         if (username.isBlank()) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body(error("Username is required."));
         }
-        if (username.length() < 3) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(error(
-                            "Username must be at least 3 characters."));
+        if (!username.matches("^[a-zA-Z0-9_]{3,20}$")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error("Username must be 3-20 characters and can only contain letters, numbers, and underscores."));
         }
         if (password.length() < 8) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(error(
-                            "Password must be at least 8 characters."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error("Password must be at least 8 characters."));
         }
         if (!password.equals(confirmPassword)) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(error("Passwords do not match."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error("Passwords do not match."));
         }
         if (email.isBlank() || !email.contains("@")) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(error(
-                            "A valid email address is required."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error("A valid email address is required."));
         }
 
         try {
@@ -302,9 +287,7 @@ public class AuthController {
             RedirectAttributes redirectAttributes) {
 
         if (password.length() < 8) {
-            redirectAttributes.addFlashAttribute(
-                    ERROR_MESSAGE_ATTRIBUTE,
-                    "Password must be at least 8 characters.");
+            redirectAttributes.addFlashAttribute(ERROR_MESSAGE_ATTRIBUTE, "Password must be at least 8 characters.");
             return "redirect:/register";
         }
         if (!password.equals(confirmPassword)) {

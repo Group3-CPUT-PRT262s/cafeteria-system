@@ -112,6 +112,17 @@
                         </a>
                     </li>
 
+                    <li class="nav-item"
+                        sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link"
+                           th:href="@{/staff/settings}"
+                           th:classappend="${activePage == 'settings'}
+           ? ' active' : ''">
+                            <i class="bi bi-gear me-1"></i>
+                            Settings
+                        </a>
+                    </li>
+
                 </ul>
 
                 <!-- Right: cart + user -->

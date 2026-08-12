@@ -1,6 +1,7 @@
 package com.group3.cafeteria_system.service;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,142 +21,285 @@ import com.group3.cafeteria_system.repository.UserRepository;
 @Service
 public class UserService implements UserDetailsService {
 
-
     private final PasswordResetTokenRepository tokenRepository;
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-public UserService (UserRepository userRepository, PasswordEncoder passwordEncoder, PasswordResetTokenRepository tokenRepository) {
-    this.userRepository = userRepository;
-    this.passwordEncoder = passwordEncoder;
-    this.tokenRepository = tokenRepository;
-}
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, PasswordResetTokenRepository tokenRepository) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.tokenRepository = tokenRepository;
+    }
 
+    /*
+     * Normalise username before storing or searching.
+     */
     private String normalizeUsername(String username) {
         return username == null ? "" : username.trim().toLowerCase();
     }
 
+    /*
+     * Normalise email before storing or searching.
+     */
     private String normalizeEmail(String email) {
-        return email == null ? "" : email.trim().toLowerCase();
+        return email == null
+                ? ""
+                : email.trim().toLowerCase();
     }
 
+    /*
+     * Spring Security user lookup.
+     */
     @Override
     public UserDetails loadUserByUsername(String username)
             throws UsernameNotFoundException {
 
-        String normalizedUsername = normalizeUsername(username);
-        User user = userRepository.findByUsername(normalizedUsername)
+        String normalizedUsername =
+                normalizeUsername(username);
+
+        User user = userRepository
+                .findByUsername(normalizedUsername)
                 .orElseThrow(() ->
                         new UsernameNotFoundException(
-                                "User not found: " + normalizedUsername));
+                                "User not found: "
+                                        + normalizedUsername));
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPasswordHash(),
                 Collections.singletonList(
-                        new SimpleGrantedAuthority("ROLE_" + user.getRole())
+                        new SimpleGrantedAuthority(
+                                "ROLE_" + user.getRole()
+                        )
                 )
         );
     }
 
+    // ---------------------------------------------------------
     // User retrieval
+    // ---------------------------------------------------------
+
     public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(normalizeUsername(username));
+
+        return userRepository.findByUsername(
+                normalizeUsername(username)
+        );
     }
 
-    // New — used by controllers to get the userId for placeOrder()
+    /*
+     * Used by controllers to get the user ID
+     * for operations such as placing an order.
+     */
     public Long getUserIdByUsername(String username) {
+
         return findByUsername(username)
                 .map(User::getUserId)
                 .orElseThrow(() ->
-                        new RuntimeException("User not found: " + username));
+                        new RuntimeException(
+                                "User not found: " + username
+                        ));
     }
 
-    // User creation
-    // Simple version for mock data (demo phase)... resolve later(check the datainitialiser class)
-    public User createUser(String username, String rawPassword, // make void later**
-                           String role) {
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordHash(passwordEncoder.encode(rawPassword));
-        user.setRole(role);
-        return userRepository.save(user);
-    }
-//    may need to use seeded data for checks/testing, keep blank for now.
+    // ---------------------------------------------------------
+    // Admin / system user creation
+    // ---------------------------------------------------------
 
     /*
-    Full version for registration (Term 3)
-    - creating/rigistr user with registration form
+     * Used by DataInitialiser to create the initial
+     * admin account.
+     *
+     * The raw password is encoded before being stored.
      */
-    public User registerUser(String username, String rawPassword,
-                             String firstName, String lastName,
-                             String email, String role) {
-        String normalizedUsername = normalizeUsername(username);
-        String normalizedEmail = normalizeEmail(email);
-
-        if (userRepository.existsByUsername(normalizedUsername)) {
-            throw new IllegalArgumentException("Username already taken. Please choose another one.");
-        }
-        if (userRepository.existsByEmail(normalizedEmail)) {
-            throw new IllegalArgumentException("Email already registered.");
-        }
-        // Look into creating maybe custom business rule exceptions, grouped. **Nice to have code later on.(assign to Seth?)
+    public User createUser(
+            String username,
+            String rawPassword,
+            String role) {
 
         User user = new User();
-        user.setUsername(normalizedUsername);
-        user.setPasswordHash(passwordEncoder.encode(rawPassword));
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
-        user.setEmail(normalizedEmail);
-        user.setRole(role);
+
+        user.setUsername(
+                normalizeUsername(username)
+        );
+
+        user.setPasswordHash(
+                passwordEncoder.encode(rawPassword)
+        );
+
+        user.setRole(role.toUpperCase());
+
         return userRepository.save(user);
     }
 
-    public boolean userExists(String username) {
-        return userRepository.existsByUsername(normalizeUsername(username));
+    // ---------------------------------------------------------
+    // Customer registration
+    // ---------------------------------------------------------
+
+    /*
+     * Creates a new registered user.
+     *
+     * The password is encoded before being stored.
+     * The role should be assigned by the backend rather
+     * than accepted from the registration form.
+     */
+    public User registerUser(
+            String username,
+            String rawPassword,
+            String firstName,
+            String lastName,
+            String email,
+            String role) {
+
+        String normalizedUsername =
+                normalizeUsername(username);
+
+        String normalizedEmail =
+                normalizeEmail(email);
+
+
+        // Check whether username is already registered
+        if (userRepository.existsByUsername(
+                normalizedUsername)) {
+
+            throw new IllegalArgumentException(
+                    "Username already taken. "
+                            + "Please choose another one."
+            );
+        }
+
+
+        // Check whether email is already registered
+        if (userRepository.existsByEmail(
+                normalizedEmail)) {
+
+            throw new IllegalArgumentException(
+                    "Email already registered."
+            );
+        }
+
+
+        User user = new User();
+
+        user.setUsername(normalizedUsername);
+        user.setPasswordHash(passwordEncoder.encode(rawPassword)
+        );
+
+        user.setFirstName(firstName == null ? "" : firstName.trim()
+        );
+
+        user.setLastName(lastName == null ? "" : lastName.trim()
+        );
+
+        user.setEmail(normalizedEmail);
+
+        user.setRole(
+                role.toUpperCase()
+        );
+
+        return userRepository.save(user);
     }
 
-    // Password Reset method
-    public String generatePasswordResetToken(String email) {
-        String normalizedEmail = normalizeEmail(email);
-        User user = userRepository.findByEmail(normalizedEmail).orElseThrow(() -> new RuntimeException(
-                        "No account found with that email address."));
-        // Remove any existing unused tokens for this user
-        tokenRepository.deleteByUserId(user.getUserId());
 
-        // Generate a unique secure token for the user
+    /*
+     * Check whether a username already exists.
+     */
+    public boolean userExists(String username) {
+
+        return userRepository.existsByUsername(
+                normalizeUsername(username)
+        );
+    }
+
+    // ---------------------------------------------------------
+    // Password reset
+    // ---------------------------------------------------------
+
+    /*
+     * Generate a password reset token for a user.
+     */
+    public String generatePasswordResetToken(
+            String email) {
+
+        String normalizedEmail =
+                normalizeEmail(email);
+
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new RuntimeException("No account found with that email address.")
+                );
+
+
+        // Remove any existing unused tokens
+        tokenRepository.deleteByUserId(user.getUserId()
+        );
+
+
+        // Generate a secure unique token
         String token = UUID.randomUUID().toString();
 
-        // Save it
-        tokenRepository.save(
-                new PasswordResetToken(token, user.getUserId()));
+
+        // Save token
+        tokenRepository.save(new PasswordResetToken(token, user.getUserId())
+        );
+
         return token;
     }
 
-    public void resetPassword(String token, String newPassword) {
-        // Find the token record
-        PasswordResetToken resetToken = tokenRepository
-                .findByToken(token)
-                .orElseThrow(() -> new RuntimeException(
-                        "Invalid or expired reset link."));
 
-        // Validate it
+    /*
+     * Reset a user's password using a valid token.
+     */
+    public void resetPassword(
+            String token,
+            String newPassword) {
+
+        PasswordResetToken resetToken =
+                tokenRepository.findByToken(token).orElseThrow(() ->
+                                new RuntimeException("Invalid or expired reset link."
+                                ));
+
+
+        // Check whether token is still valid
         if (!resetToken.isValid()) {
+
             throw new BadCredentialsException(
-                    "This reset link has expired or has already been used. " + " Please request a new one.");
+                    "This reset link has expired "
+                            + "or has already been used. "
+                            + "Please request a new one."
+            );
         }
 
-        // Update the user's password
+
+        // Find the user
         User user = userRepository
                 .findById(resetToken.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found."));
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "User not found."
+                        ));
 
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
+
+        // Encode and update password
+        user.setPasswordHash(
+                passwordEncoder.encode(newPassword)
+        );
+
         userRepository.save(user);
 
-        // Mark token as used — prevents reuse
+
+        // Mark token as used
         resetToken.setUsed(true);
+
         tokenRepository.save(resetToken);
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public void updateUserRole(Long userId, String role) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException(
+                        "User not found."));
+        user.setRole(role);
+        userRepository.save(user);
     }
 }
