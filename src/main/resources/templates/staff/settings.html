@@ -426,7 +426,7 @@
     function addSlot() {
         const slotTime  = document.getElementById(
             'newSlotTime').value;
-        const maxOrders = parseInt(document.getElementById(
+        const maxOrders = Number.parseInt(document.getElementById(
             'newSlotMax').value) || 20;
 
         if (!slotTime) {

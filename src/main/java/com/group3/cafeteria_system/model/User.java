@@ -23,6 +23,7 @@ public class User {
     @Column(name = "last_name")
     private String lastName;
 
+    @Column(nullable = false, unique = true)
     private String email;
 
     // Role values: STUDENT, STAFF, ADMIN

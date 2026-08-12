@@ -28,20 +28,18 @@ public class TimeSlotService {
     }
 
     public TimeSlot toggleSlot(Long id) {
-        TimeSlot slot = timeSlotRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(
-                        "Time slot not found."));
+        TimeSlot slot = timeSlotRepository.findById(id).orElseThrow(() -> new RuntimeException("Time slot not found."));
         if (slot.getIsActive()) {
-            slot.deactivate();
+            slot.deactivateTimeslot();
         } else {
-            slot.activate();
+            slot.activateTimeslot();
         }
         return timeSlotRepository.save(slot);
     }
 
     public void deleteSlot(Long timeSlotId) {
         TimeSlot slot = findSlotOrThrow(timeSlotId);
-        timeSlotRepository.deleteById(slot);
+        timeSlotRepository.delete(slot);
     }
 
     private TimeSlot findSlotOrThrow(Long timeSlotId) {
