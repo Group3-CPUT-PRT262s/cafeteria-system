@@ -4,6 +4,8 @@
 <head>
     <th:block th:replace="~{base :: head}"></th:block>
     <title th:text="${pageTitle}">Add Item</title>
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
     <style>
         .form-wrapper {
             max-width: 600px;
@@ -185,21 +187,20 @@
     // DATABASE OPERATION: CREATE
     // Inserts a new row into the menu_items table
     function saveItem() {
-        const itemName   = document.getElementById('itemName')
-            .value.trim();
-        const description = document.getElementById('description')
-            .value.trim();
-        const price      = document.getElementById('price').value;
-        const categoryId = document.getElementById('categoryId')
-            .value;
-        const status     = document.getElementById('status').value;
+        const itemName = document.getElementById('itemName').value.trim();
+        const description = document.getElementById('description').value.trim();
+        const price = document.getElementById('price').value;
+        const categoryId = document.getElementById('categoryId').value;
+        const status = document.getElementById('status').value;
+        const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
         // Validation
         if (!itemName) {
             showError('Item name is required.');
             return;
         }
-        if (!price || parseFloat(price) <= 0) {
+        if (!price || Number.parseFloat(price) <= 0) {
             showError('Please enter a valid price.');
             return;
         }
@@ -214,15 +215,18 @@
 
         // CREATE — POST inserts into menu_items
         fetch('/api/staff/menu', {
-            method:      'POST',
+            method: 'POST',
             credentials: 'same-origin',
-            headers:     { 'Content-Type': 'application/json' },
-            body:        JSON.stringify({
-                itemName:    itemName,
+            headers: {
+                'Content-Type': 'application/json',
+                [csrfHeader]: csrfToken
+            },
+            body: JSON.stringify({
+                itemName: itemName,
                 description: description,
-                price:       parseFloat(price),
-                categoryId:  parseInt(categoryId),
-                status:      status
+                price: Number.parseFloat(price),
+                categoryId: Number.parseInt(categoryId),
+                status: status
             })
         })
             .then(r => r.json())

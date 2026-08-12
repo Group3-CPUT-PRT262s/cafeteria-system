@@ -73,7 +73,7 @@ public class StaffController {
         return "staff/menu-management";
     }
 
-    @GetMapping("/staff/menu-management")
+    @GetMapping("/staff/menu-management") // might not need this, keep for now.
     public String menuManagement(Model model) {
         List<MenuItem> items = menuService.getAllItemsForStaff();
         model.addAttribute("items", items);

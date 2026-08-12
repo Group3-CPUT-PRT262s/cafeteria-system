@@ -11,6 +11,7 @@ import java.util.Optional;
 public class MenuService {
 
     private final MenuItemRepository menuItemRepository;
+    String menuMessage = "Menu item not found with id: ";
 
     public MenuService(MenuItemRepository menuItemRepository) {
         this.menuItemRepository = menuItemRepository;
@@ -49,7 +50,7 @@ public class MenuService {
     public MenuItem updateItem(Long id, MenuItem updatedItem) {
         MenuItem item = menuItemRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Menu item not found with id: " + id));
+                        new RuntimeException(menuMessage + id));
 
         item.setItemName(updatedItem.getItemName());
         item.setDescription(updatedItem.getDescription());
@@ -62,7 +63,7 @@ public class MenuService {
     public MenuItem updateStatus(Long id, String status) {
         MenuItem item = menuItemRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Menu item not found with id: " + id));
+                        new RuntimeException(menuMessage + id));
 
         item.setStatus(status);
         return menuItemRepository.save(item);
@@ -71,7 +72,7 @@ public class MenuService {
     public void removeItem(Long id) {
         MenuItem item = menuItemRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Menu item not found with id: " + id));
+                        new RuntimeException(menuMessage + id));
 
         item.softDelete();
         menuItemRepository.save(item);
@@ -80,7 +81,7 @@ public class MenuService {
     public void restoreItem(Long id) {
         MenuItem item = menuItemRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Menu item not found with id: " + id));
+                        new RuntimeException(menuMessage + id));
 
         item.restore();
         menuItemRepository.save(item);
