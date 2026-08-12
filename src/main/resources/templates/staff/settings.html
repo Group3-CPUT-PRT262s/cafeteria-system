@@ -125,10 +125,10 @@
         }
     </style>
 </head>
-<body th:replace="~{base :: layout}">
-
-<th:block th:fragment="content">
-    <div class="container-fluid px-4">
+<body>
+<th:block th:replace="~{base :: layout(~{::content})}">
+    <th:block th:fragment="content">
+        <div class="container-fluid px-4">
 
         <div class="page-header">
             <h1>System Settings</h1>
@@ -221,7 +221,7 @@
                 </ul>
 
                 <div class="add-form">
-                    43eda <input type="time"
+                    <input type="time"
                            id="newSlotTime"
                            placeholder="12:00">
                     <input type="number"
