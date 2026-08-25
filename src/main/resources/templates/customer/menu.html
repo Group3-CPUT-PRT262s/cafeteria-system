@@ -14,9 +14,28 @@
 <th:block th:replace="~{base :: layout(~{::content})}">
     <th:block th:fragment="content">
 
-        <!-- ALL your existing menu page HTML goes here -->
-
+        <div class="container my-5">
+            <div class="card shadow-sm text-center">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">Customer Menu</h3>
+                    <!-- Refresh Button -->
+                    <button class="btn btn-sm btn-light" onclick="window.location.reload();" title="Refresh Menu">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+                    <div class="card shadow-sm text-center mx-auto" style="max-width: 500px;">
+                        <div class="card-body p-4">
+                            <h4 class="card-title text-muted mb-3">Menu coming soon</h4>
+                            <p class="card-text fs-5 badge bg-info text-dark p-2"
+                               th:text="${items != null ? items.size() : 0} + ' items in the database'">
+                                0 items in the database
+                            </p>
+                        </div>
+                    </div>
+                </div>
+        </div>
     </th:block>
+
 </th:block>
 <!-- page scripts go here -->
 <script>
