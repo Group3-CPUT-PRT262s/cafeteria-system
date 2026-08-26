@@ -44,7 +44,9 @@ public class SecurityConfig {
             throws Exception {
 
         http.authenticationProvider(authenticationProvider())
+
                 .csrf(csrf -> csrf.disable())
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/",
@@ -61,10 +63,12 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/images/**"
                         ).permitAll()
+
                         .requestMatchers(
                                 "/staff/**",
                                 "/api/staff/**"
                         ).hasAnyRole("STAFF", "ADMIN")
+
                         .anyRequest().authenticated()
                 )
 
@@ -88,10 +92,6 @@ public class SecurityConfig {
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                 )
 
-                .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/h2-console/**")
-                )
-
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(
                                 (request, response, authException) -> {
@@ -105,10 +105,7 @@ public class SecurityConfig {
                                         response.sendRedirect("/login");
                                     }
                                 })
-                )
-
-
-        ;
+                );
 
         return http.build();
     }

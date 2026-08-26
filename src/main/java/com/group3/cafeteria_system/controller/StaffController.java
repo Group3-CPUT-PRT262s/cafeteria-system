@@ -247,8 +247,7 @@ public class StaffController {
                     "message", "Time slot deleted."
             ));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of(
+            return ResponseEntity.badRequest().body(Map.of(
                             "status",  "error",
                             "message", e.getMessage()));
         }
@@ -392,6 +391,93 @@ public class StaffController {
                             "status", "error",
                             "message", e.getMessage()
                     ));
+        }
+    }
+
+
+    /* PATCH /api/staff/menu/{id}/remove
+
+     DATABASE OPERATION: UPDATE
+     Soft-deletes a menu item by setting is_active = false.
+     The database record is preserved.
+    */
+    @PatchMapping("/api/staff/menu/{id}/remove")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> removeMenuItem(
+            @PathVariable Long id) {
+
+        try {
+            menuService.removeItem(id);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Menu item deactivated.",
+                    "isActive", false
+            ));
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+
+    /*
+     PATCH /api/staff/menu/{id}/activate
+     DATABASE OPERATION: UPDATE
+     Restores a menu item by setting is_active = true.
+    */
+    @PatchMapping("/api/staff/menu/{id}/activate")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> activateMenuItem(
+            @PathVariable Long id) {
+
+        try {
+            menuService.restoreItem(id);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Menu item activated.",
+                    "isActive", true
+            ));
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    // ─────────────────────────────────────────
+// PUT /api/staff/menu/{id}
+// ─────────────────────────────────────────
+// DATABASE OPERATION: UPDATE
+// Updates the details of an existing menu item.
+// ─────────────────────────────────────────
+    @PutMapping("/api/staff/menu/{id}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateMenuItem(
+            @PathVariable Long id,
+            @RequestBody MenuItem updatedItem) {
+
+        try {
+            MenuItem savedItem = menuService.updateItem(id, updatedItem);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Menu item updated successfully.",
+                    "itemId", savedItem.getMenuItemId(),
+                    "itemName", savedItem.getItemName()
+            ));
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
         }
     }
 }

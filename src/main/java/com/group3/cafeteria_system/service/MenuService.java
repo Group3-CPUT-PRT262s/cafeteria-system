@@ -48,9 +48,7 @@ public class MenuService {
 
     // Update an existing item (name, price, description, category)
     public MenuItem updateItem(Long id, MenuItem updatedItem) {
-        MenuItem item = menuItemRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(menuMessage + id));
+        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
 
         item.setItemName(updatedItem.getItemName());
         item.setDescription(updatedItem.getDescription());
@@ -61,27 +59,21 @@ public class MenuService {
     }
 
     public MenuItem updateStatus(Long id, String status) {
-        MenuItem item = menuItemRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(menuMessage + id));
+        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
 
         item.setStatus(status);
         return menuItemRepository.save(item);
     }
 
     public void removeItem(Long id) {
-        MenuItem item = menuItemRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(menuMessage + id));
+        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
 
         item.softDelete();
         menuItemRepository.save(item);
     }
 
     public void restoreItem(Long id) {
-        MenuItem item = menuItemRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(menuMessage + id));
+        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
 
         item.restore();
         menuItemRepository.save(item);

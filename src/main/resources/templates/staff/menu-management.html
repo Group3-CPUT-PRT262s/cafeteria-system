@@ -201,7 +201,7 @@
         }
         .btn-delete {
             background: #fce4d6;
-            color:      #c0392b;
+            color: #c0392b;
         }
         .btn-delete:hover {
             background: #c0392b;
@@ -281,7 +281,7 @@
 
             <!-- Items grid ( -->
             <div class="mgmt-grid" id="itemsGrid">
-<!--                <p th:text="'Items received: ' + ${items.size()}">-->
+
                 <div th:each="item : ${items}"
                      class="mgmt-card"
                      th:classappend="${!item.isActive} ? ' inactive' : ''"
@@ -323,25 +323,31 @@
                             <!-- Status dropdown -->
                             <!-- UPDATE — PATCH /api/staff/menu/{id}/status -->
                             <!-- Updates status column in menu_items table -->
+
+
+                            <label th:for="'status-' + ${item.menuItemId}"
+                                   class="visually-hidden">
+                                Status
+                            </label>
+
                             <select class="status-select"
                                     th:id="'status-' + ${item.menuItemId}"
                                     th:onchange="'updateStatus('
-                                + ${item.menuItemId}
-                                + ', this.value)'"
+                                    + ${item.menuItemId}
+                                    + ', this.value)'"
                                     th:if="${item.isActive}">
                                 <option value="Available"
-                                        th:selected="${item.status
-                                    == 'Available'}">
+                                        th:selected="${item.status == 'Available'}">
                                     Available
                                 </option>
+
                                 <option value="Low Stock"
-                                        th:selected="${item.status
-                                    == 'Low Stock'}">
+                                        th:selected="${item.status == 'Low Stock'}">
                                     Low Stock
                                 </option>
+
                                 <option value="Sold Out"
-                                        th:selected="${item.status
-                                    == 'Sold Out'}">
+                                        th:selected="${item.status == 'Sold Out'}">
                                     Sold Out
                                 </option>
                             </select>
@@ -370,14 +376,14 @@
                                 Remove
                             </button>
 
-                            <!-- Restore soft-deleted item -->
+                            <!-- Restore soft-deleted item, and have it activated back onto the active tiles-->
                             <button class="btn-mgmt btn-restore"
                                     th:unless="${item.isActive}"
                                     th:data-id="${item.menuItemId}"
                                     th:data-name="${item.itemName}"
                                     onclick="restoreItemFromButton(this)">
                                 <i class="bi bi-arrow-counterclockwise"></i>
-                                Restore
+                                Activate
                             </button>
                         </div>
                     </div>
@@ -452,7 +458,6 @@
 <script>
     let deleteModal = null;
     let pendingDeleteId = null;
-    // const categoryId = button.dataset.categoryId;
 
     document.addEventListener('DOMContentLoaded', () => {
         deleteModal = new bootstrap.Modal(
@@ -525,23 +530,31 @@
     }
 
     function performDelete(itemId) {
-        fetch(`/api/staff/menu/${itemId}`, {
-            method:      'DELETE',
+        fetch(`/api/staff/menu/${itemId}/remove`, {
+            method: 'PATCH',
             credentials: 'same-origin'
         })
-            .then(r => r.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Request failed: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 deleteModal.hide();
+
                 if (data.status === 'success') {
                     showToast('Item removed from menu.');
-                    // Reload page to reflect change
+
+                    // Reload so the item appears under Inactive
                     setTimeout(() => location.reload(), 1000);
                 } else {
-                    showToast(data.message, true);
+                    showToast(data.message || 'Remove failed.', true);
                 }
             })
-            .catch(() => {
-                showToast('Delete failed.', true);
+            .catch(error => {
+                console.error('Remove error:', error);
+                showToast('Failed to remove item.', true);
                 deleteModal.hide();
             });
     }
@@ -553,33 +566,31 @@
         confirmDelete(itemId, itemName);
     }
 
-    // ── RESTORE — reactivate soft-deleted item ─
+    // RESTORE — reactivate soft-deleted item
     function restoreItem(itemId, itemName) {
-        fetch(`/api/staff/menu/${itemId}/status`, {
-            method:      'PATCH',
-            credentials: 'same-origin',
-            headers:     { 'Content-Type': 'application/json' },
-            body:        JSON.stringify({ status: 'Available' })
+        fetch(`/api/staff/menu/${itemId}/activate`, {
+            method: 'PATCH',
+            credentials: 'same-origin'
         })
-            .then(() => {
-                // Also reactivate the item
-                return fetch(`/api/staff/menu/${itemId}`, {
-                    method:      'PUT',
-                    credentials: 'same-origin',
-                    headers:     { 'Content-Type': 'application/json' },
-                    body:        JSON.stringify({
-                        isActive: true,
-                        status:   'Available'
-                    })
-                });
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Request failed: ${response.status}`);
+                }
+                return response.json();
             })
-            .then(r => r.json())
-            .then(() => {
-                showToast(`"${itemName}" restored to menu.`);
-                setTimeout(() => location.reload(), 1000);
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast(`"${itemName}" activated.`);
+
+                    // Reload so the item returns to the active list
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.message || 'Activation failed.', true);
+                }
             })
-            .catch(() => {
-                showToast('Restore failed.', true);
+            .catch(error => {
+                console.error('Activation error:', error);
+                showToast('Failed to activate item.', true);
             });
     }
     function restoreItemFromButton(button) {
