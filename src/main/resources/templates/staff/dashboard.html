@@ -280,6 +280,39 @@
                 </div>
             </div>
 
+
+
+            <!--What Zee added-->
+            <!--Filter bar-->
+            <div class="filter-bar">
+                <div class="filter-search">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="filterSearch" placeholder="Search order/customer" oninput="applyFilters()">
+                </div>
+
+                <select class="filter-select" id="filterStatus" onchange="applyFilters()">
+                    <option value="active">Active orders</option>
+                    <option value="all">All statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Confirmed">Confirmed</option>
+                    <option value="Preparing">Preparing</option>
+                    <option value="Ready">Ready</option>
+                    <option value="Collected">Collected</option>   <!-- fixed closing tag -->
+                </select>
+
+                <select class="filter-select" id="filterSlot" onchange="applyFilters()">  <!-- fixed onchange -->
+                    <option value="all">All time slots</option>
+                </select>
+
+                <button class="filter-clear" onclick="clearFilters()">   <!-- added space -->
+                    <i class="bi bi-x-lg me-1"></i>Clear
+                </button>
+
+                <span class="filter-count" id="filterCount"></span>
+            </div>
+
+
+
             <!-- ── Dashboard content ────────────── -->
             <div id="dashLoading" class="loading-state">
                 <div class="spinner-border text-primary"
@@ -319,6 +352,90 @@
 </th:block>
 
 <script>
+
+    // <!--What Zee added-->
+    // <!--Adding for the filter-->
+
+    function populateSlotFilter(slots) {
+        const sel = document.getElementById('filterSlot');
+        const prevValue = sel.value;
+        sel.innerHTML = '<option value="all">All time slots</option>';
+        slots.forEach(slot => {
+            const option = document.createElement('option');
+            option.value = slot.timeSlotId;      // Fixed: 'option' instead of 'opt'
+            option.textContent = slot.slotTime;  // Fixed: 'option' instead of 'opt'
+            sel.appendChild(option);
+        });
+        // Optional: restore previous value if it exists in the new list
+        if (prevValue) sel.value = prevValue;
+    }
+
+    function applyFilters() {
+        if (!allOrders.length) {
+            // Update count even if no orders
+            document.getElementById('filterCount').textContent = 'Showing 0 of 0 orders';
+            return;
+        }
+
+        const searchTerm = document.getElementById('filterSearch').value.trim().toLowerCase();
+        const statusVal = document.getElementById('filterStatus').value; // FIXED: Correct dropdown
+        const slotVal = document.getElementById('filterSlot').value;     // FIXED: Added this variable
+
+        const filtered = allOrders.filter(o => {
+            // Active filter excludes 'Collected'
+            if (statusVal === 'active' && o.orderStatus === 'Collected')
+                return false;
+
+            // Specific status filter
+            if (statusVal !== 'active' && statusVal !== 'all' && o.orderStatus !== statusVal)
+                return false;
+
+            // Time slot filter
+            if (slotVal !== 'all' && String(o.timeSlotId) !== slotVal)
+                return false;
+
+            // Search filter
+            if (searchTerm) {
+                const matches = String(o.orderId).includes(searchTerm) || String(o.userId).includes(searchTerm);
+                if (!matches)
+                    return false;
+            }
+            return true;
+        });
+        // FIXED: Use backticks for template literal
+        document.getElementById('filterCount').textContent = `Showing ${filtered.length} of ${allOrders.length} orders`;
+
+        const contentDiv = document.getElementById('dashContent');
+        const noResultsDiv = document.getElementById('dashNoResults');
+
+        if (filtered.length === 0) {
+            noResultsDiv.style.display = 'block'; // Show no results
+            contentDiv.style.display = 'block';
+            contentDiv.innerHTML = '';            // FIXED: correct casing 'innerHTML'
+        } else {
+            noResultsDiv.style.display = 'none';
+            contentDiv.style.display = 'block';
+            // Ensure the render function replaces content, not appends.
+            // If renderDashboard appends, you might want to clear it first:
+            // contentDiv.innerHTML = '';
+            renderDashboard(filtered, timeSlots);
+        }
+    }
+    function clearFilters() {
+        document.getElementById('filterSearch').value = '';
+        document.getElementById('filterStatus').value = 'active';
+        document.getElementById('filterSlot').value = 'all';
+        applyFilters();
+    }
+
+
+
+
+
+
+
+
+// -----------------------------
     // Status display config
     const STATUS_CONFIG = {
         'Pending':   {

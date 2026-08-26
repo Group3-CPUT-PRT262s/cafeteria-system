@@ -20,7 +20,7 @@ public class MenuService {
     // Retrieval methods
 
     public List<MenuItem> getAllActiveItems() {
-        return menuItemRepository.findAll();
+        return menuItemRepository.findByIsActiveTrue();
     }
 
     // Now takes a category ID instead of a category name string

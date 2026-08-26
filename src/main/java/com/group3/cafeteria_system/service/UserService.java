@@ -113,18 +113,52 @@ public class UserService implements UserDetailsService {
     public User createUser(
             String username,
             String rawPassword,
+            String firstName,
+            String lastName,
+            String email,
             String role) {
+
+        String normalizedUsername =
+                normalizeUsername(username);
+
+        String normalizedEmail =
+                normalizeEmail(email);
+
+        if (normalizedUsername.isBlank()) {
+            throw new IllegalArgumentException("Username is required.");
+        }
+
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new IllegalArgumentException("Password is required.");
+        }
+
+        if (normalizedEmail.isBlank() || !normalizedEmail.contains("@")) {
+            throw new IllegalArgumentException("A valid email address is required.");
+        }
+
+        if (role == null || role.isBlank()) {
+            throw new IllegalArgumentException("Role is required.");
+        }
+
+        if (userRepository.existsByUsername(normalizedUsername)) {
+            throw new IllegalArgumentException("Username already taken. Please choose another one.");
+        }
+
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new IllegalArgumentException("Email already registered.");
+        }
 
         User user = new User();
 
-        user.setUsername(
-                normalizeUsername(username)
-        );
+        user.setUsername(normalizedUsername);
 
         user.setPasswordHash(
                 passwordEncoder.encode(rawPassword)
         );
 
+        user.setFirstName(firstName == null ? "" : firstName.trim());
+        user.setLastName(lastName == null ? "" : lastName.trim());
+        user.setEmail(normalizedEmail);
         user.setRole(role.toUpperCase());
 
         return userRepository.save(user);

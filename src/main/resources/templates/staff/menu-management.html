@@ -271,19 +271,17 @@
                 </button>
                 <span th:each="cat : ${categories}">
             <button class="filter-pill"
-                    th:onclick="'filterByCategory('
-                        + ${cat.categoryId} + ', this)'"
+                    th:data-category-id="${cat.categoryId}"
+                    onclick="filterByCategoryFromButton(this)"
                     th:text="${cat.categoryName}">
-                Category
+                    Category
             </button>
         </span>
             </div>
 
-            <!-- ── Items grid ───────────────────── -->
-            <div class="mgmt-grid" id="itemsGrid"> <!--Temp placeholder(for testing-->
-                <p th:text="'Items received: ' + ${items.size()}">
-                    Items: unknown
-                </p>
+            <!-- Items grid ( -->
+            <div class="mgmt-grid" id="itemsGrid">
+<!--                <p th:text="'Items received: ' + ${items.size()}">-->
                 <div th:each="item : ${items}"
                      class="mgmt-card"
                      th:classappend="${!item.isActive} ? ' inactive' : ''"
@@ -308,7 +306,7 @@
                         </div>
                         <div class="mgmt-card-cat"
                              th:text="'Category ID: '
-                         + ${item.categoryId}">
+                         + ${item.categoryId}"> <!-- change this to pull the category name instead (later)-->
                         </div>
                         <div class="mgmt-card-desc"
                              th:text="${item.description
@@ -365,10 +363,9 @@
                             <!-- Sets is_active=false, does not remove row -->
                             <button class="btn-mgmt btn-delete"
                                     th:if="${item.isActive}"
-                                    th:onclick="'confirmDelete('
-                                + ${item.menuItemId}
-                                + ', \'' + ${item.itemName}
-                                + '\')'">
+                                    th:data-id="${item.menuItemId}"
+                                    th:data-name="${item.itemName}"
+                                    onclick="confirmDeleteFromButton(this)">
                                 <i class="bi bi-trash"></i>
                                 Remove
                             </button>
@@ -376,10 +373,9 @@
                             <!-- Restore soft-deleted item -->
                             <button class="btn-mgmt btn-restore"
                                     th:unless="${item.isActive}"
-                                    th:onclick="'restoreItem('
-                                + ${item.menuItemId}
-                                + ', \'' + ${item.itemName}
-                                + '\')'">
+                                    th:data-id="${item.menuItemId}"
+                                    th:data-name="${item.itemName}"
+                                    onclick="restoreItemFromButton(this)">
                                 <i class="bi bi-arrow-counterclockwise"></i>
                                 Restore
                             </button>
@@ -454,8 +450,9 @@
 </th:block>
 
 <script>
-    let deleteModal     = null;
+    let deleteModal = null;
     let pendingDeleteId = null;
+    // const categoryId = button.dataset.categoryId;
 
     document.addEventListener('DOMContentLoaded', () => {
         deleteModal = new bootstrap.Modal(
@@ -482,7 +479,7 @@
         setActiveFilter(btn);
         document.querySelectorAll('.mgmt-card').forEach(card => {
             card.style.display =
-                card.dataset.category == categoryId ? '' : 'none';
+                card.dataset.category === categoryId ? '' : 'none';
         });
     }
 
@@ -506,8 +503,7 @@
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'success') {
-                    showToast(
-                        `Status updated to "${newStatus}"`);
+                    showToast(`Status updated to "${newStatus}"`);
                 } else {
                     showToast(data.message, true);
                 }
@@ -523,10 +519,8 @@
     // Sets is_active = false — row preserved in DB
     function confirmDelete(itemId, itemName) {
         pendingDeleteId = itemId;
-        document.getElementById('deleteModalTitle')
-            .textContent = `Remove "${itemName}"?`;
-        document.getElementById('confirmDeleteBtn')
-            .onclick = () => performDelete(itemId);
+        document.getElementById('deleteModalTitle').textContent = `Remove "${itemName}"?`;
+        document.getElementById('confirmDeleteBtn').onclick = () => performDelete(itemId);
         deleteModal.show();
     }
 
@@ -550,6 +544,13 @@
                 showToast('Delete failed.', true);
                 deleteModal.hide();
             });
+    }
+
+    function confirmDeleteFromButton(button) {
+        const itemId = button.dataset.id;
+        const itemName = button.dataset.name;
+
+        confirmDelete(itemId, itemName);
     }
 
     // ── RESTORE — reactivate soft-deleted item ─
@@ -581,7 +582,12 @@
                 showToast('Restore failed.', true);
             });
     }
+    function restoreItemFromButton(button) {
+        const itemId = button.dataset.id;
+        const itemName = button.dataset.name;
 
+        restoreItem(itemId, itemName);
+    }
     function showToast(message, isError = false) {
         const toast = document.getElementById('mgmtToast');
         document.getElementById('mgmtToastMsg')
@@ -589,6 +595,17 @@
         toast.style.background = isError
             ? '#c0392b' : '#1F3864';
         new bootstrap.Toast(toast, { delay: 3000 }).show();
+    }
+    // Filter function for category buttons
+    function filterByCategoryFromButton(button) {
+        const categoryId = button.dataset.categoryId;
+
+        setActiveFilter(button);
+
+        document.querySelectorAll('.mgmt-card').forEach(card => {
+            card.style.display =
+                card.dataset.category === categoryId ? '' : 'none';
+        });
     }
 </script>
 </body>

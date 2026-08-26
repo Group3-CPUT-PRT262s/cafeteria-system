@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 public class DataInitialiser implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(DataInitialiser.class);
+    private static final String ADMIN_USERNAME = "admin";
+    private static final String ADMIN_EMAIL = "admin@cafeteria.local"; // test email
 
     private static final String PASSWORD_CHARACTERS =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
@@ -34,13 +36,16 @@ public class DataInitialiser implements CommandLineRunner {
          * The generated password is displayed in the application console.
          * NOTE: an admin account will not be created after each run if an admin account is present in our/your database
          */
-        if (!userService.userExists("admin")) {
+        if (!userService.userExists(ADMIN_USERNAME)) {
 
             String generatedPassword = generatePassword();
 
             userService.createUser(
-                    "admin",
+                    ADMIN_USERNAME,
                     generatedPassword,
+                    "System",
+                    "Admin",
+                    ADMIN_EMAIL,
                     "ADMIN"
             );
 
@@ -49,14 +54,15 @@ public class DataInitialiser implements CommandLineRunner {
                     Springboot application run detected.
 
                     Admin account created:
-                      Username: admin
+                      Username: {}
+                      Email: {}
                       Password: {}
 
                       CHANGE THIS PASSWORD IMMEDIATELY (leave for testing)
 
                     Log in at: http://localhost:8080/login
                     ========================================
-                    """, generatedPassword);
+                    """, ADMIN_USERNAME, ADMIN_EMAIL, generatedPassword);
         }
     }
 

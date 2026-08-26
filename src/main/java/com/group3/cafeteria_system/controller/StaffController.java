@@ -1,5 +1,6 @@
 package com.group3.cafeteria_system.controller;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -7,12 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 import com.group3.cafeteria_system.model.Category;
 import com.group3.cafeteria_system.model.CustomerOrder;
@@ -373,6 +369,29 @@ public class StaffController {
         }
     }
 
-    //--------------------
+    //-------------------
 
+    @PostMapping("/api/staff/menu")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> addMenuItem(
+            @RequestBody MenuItem item) {
+
+        try {
+            MenuItem savedItem = menuService.addItem(item);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("status", "success");
+            response.put("message", "Menu item added successfully.");
+            response.put("itemName", savedItem.getItemName());
+            response.put("itemId", savedItem.getMenuItemId());
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
+                    ));
+        }
+    }
 }
