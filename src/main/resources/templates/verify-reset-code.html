@@ -1,0 +1,122 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Verify Reset Code | Campus Cafeteria</title>
+
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+
+<body>
+
+<div class="auth-container">
+
+    <div class="auth-card">
+
+        <div class="auth-header">
+            <h1>Enter reset code</h1>
+            <p>
+                We've sent a verification code to your email address.
+                Enter the code below to continue.
+            </p>
+        </div>
+
+        <!-- Error message -->
+        <div th:if="${error}" class="alert alert-error">
+            <span th:text="${error}"></span>
+        </div>
+
+        <!-- Success message -->
+        <div th:if="${message}" class="alert alert-success">
+            <span th:text="${message}"></span>
+        </div>
+
+        <form th:action="@{/verify-reset-code}" method="post" id="verifyCodeForm">
+
+            <!-- CSRF protection -->
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <div class="form-group">
+
+                <label for="code">Verification Code</label>
+
+                <input
+                        type="text"
+                        id="code"
+                        name="code"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        maxlength="6"
+                        pattern="[0-9]{6}"
+                        placeholder="Enter 6-digit code"
+                        required
+                >
+
+                <small class="form-helper">
+                    The code is valid for 10 minutes.
+                </small>
+
+            </div>
+
+            <button type="submit" id="verifyButton">
+                Verify Code
+            </button>
+
+        </form>
+
+        <div class="auth-footer">
+
+            <p>
+                Didn't receive the code?
+            </p>
+
+            <form th:action="@{/forgot-password}" method="get">
+                <button type="submit" class="secondary-button">
+                    Request a new code
+                </button>
+            </form>
+
+            <p>
+                <a th:href="@{/login}">Back to Login</a>
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    const codeInput = document.getElementById("code");
+    const verifyForm = document.getElementById("verifyCodeForm");
+    const verifyButton = document.getElementById("verifyButton");
+
+    // Allow numbers only
+    codeInput.addEventListener("input", function () {
+        this.value = this.value.replace(/\D/g, "").slice(0, 6);
+    });
+
+    verifyForm.addEventListener("submit", function () {
+
+        if (codeInput.value.length !== 6) {
+            codeInput.setCustomValidity(
+                "Please enter the 6-digit verification code."
+            );
+            codeInput.reportValidity();
+            return;
+        }
+
+        codeInput.setCustomValidity("");
+
+        verifyButton.disabled = true;
+        verifyButton.textContent = "Verifying Code...";
+    });
+</script>
+
+</body>
+</html>

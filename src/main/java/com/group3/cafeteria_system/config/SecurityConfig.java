@@ -88,6 +88,12 @@ public class SecurityConfig {
                         .permitAll()
                 )
 
+//                Currently, this line commented out enables the menuu item cards to be soft deleted.
+//                code breaks if this is not commented out for some reason, but can cause login issues
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/h2-console/**")
+                )
+
                 .headers(headers -> headers
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                 )
