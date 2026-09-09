@@ -26,7 +26,7 @@ public class InventoryService {
     }
 
     public Inventory createInventory(Long menuItemId, Integer quantity,
-                                     Integer reorderLevel, String unit) {
+            Integer reorderLevel, String unit) {
         Inventory inventory = new Inventory(menuItemId, quantity,
                 reorderLevel, unit);
         return inventoryRepository.save(inventory);
@@ -36,17 +36,17 @@ public class InventoryService {
     // the new stock level. Called when an order is placed.
     public void deductStock(Long menuItemId, int quantity) {
         Inventory inventory = inventoryRepository.findByMenuItemId(menuItemId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "No inventory record for menu item: " + menuItemId));
+                .orElseThrow(()
+                        -> new RuntimeException(
+                        "No inventory record for menu item: " + menuItemId));
 
         inventory.deductStock(quantity);
         inventoryRepository.save(inventory);
 
         // Sync MenuItem.status based on the new stock level
         MenuItem item = menuItemRepository.findById(menuItemId)
-                .orElseThrow(() ->
-                        new RuntimeException("Menu item not found: " + menuItemId));
+                .orElseThrow(()
+                        -> new RuntimeException("Menu item not found: " + menuItemId));
 
         item.setStatus(inventory.stockLevels());
         menuItemRepository.save(item);
@@ -54,18 +54,23 @@ public class InventoryService {
 
     // Staff restocking an item
     public Inventory restock(Long menuItemId, int additionalQuantity) {
+        // Validate the restock quantity
+        if (additionalQuantity <= 0) {
+            throw new IllegalArgumentException(
+                    "Restock quantity must be greater than zero");
+        }
         Inventory inventory = inventoryRepository.findByMenuItemId(menuItemId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "No inventory record for menu item: " + menuItemId));
+                .orElseThrow(()
+                        -> new RuntimeException(
+                        "No inventory record for menu item: " + menuItemId));
 
         inventory.setQuantityInStock(
                 inventory.getQuantityInStock() + additionalQuantity);
         Inventory saved = inventoryRepository.save(inventory);
 
         MenuItem item = menuItemRepository.findById(menuItemId)
-                .orElseThrow(() ->
-                        new RuntimeException("Menu item not found: " + menuItemId));
+                .orElseThrow(()
+                        -> new RuntimeException("Menu item not found: " + menuItemId));
 
         item.setStatus(inventory.stockLevels());
         menuItemRepository.save(item);
