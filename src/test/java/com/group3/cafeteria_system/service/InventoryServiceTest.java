@@ -73,4 +73,57 @@ class InventoryServiceTest {
 
         assertEquals(30, service.restock(1L, 10).getQuantityInStock());
     }
+
+    @Test
+    void restockUpdatesMenuItemStatus() {
+
+        InventoryRepository inventoryRepository
+                = Mockito.mock(InventoryRepository.class);
+
+        MenuItemRepository menuItemRepository
+                = Mockito.mock(MenuItemRepository.class);
+
+        InventoryService service
+                = new InventoryService(inventoryRepository, menuItemRepository);
+
+        Inventory inventory = new Inventory();
+        inventory.setQuantityInStock(0);
+
+        MenuItem menuItem = new MenuItem();
+
+        when(inventoryRepository.findByMenuItemId(1L))
+                .thenReturn(java.util.Optional.of(inventory));
+
+        when(inventoryRepository.save(any(Inventory.class)))
+                .thenReturn(inventory);
+
+        when(menuItemRepository.findById(1L))
+                .thenReturn(java.util.Optional.of(menuItem));
+
+        service.restock(1L, 10);
+
+        Mockito.verify(menuItemRepository)
+                .save(menuItem);
+    }
+
+    @Test
+    void restockRejectsMissingInventory() {
+
+        InventoryRepository inventoryRepository
+                = Mockito.mock(InventoryRepository.class);
+
+        MenuItemRepository menuItemRepository
+                = Mockito.mock(MenuItemRepository.class);
+
+        InventoryService service
+                = new InventoryService(inventoryRepository, menuItemRepository);
+
+        when(inventoryRepository.findByMenuItemId(1L))
+                .thenReturn(java.util.Optional.empty());
+
+        assertThrows(
+                RuntimeException.class,
+                () -> service.restock(1L, 10)
+        );
+    }
 }
