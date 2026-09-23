@@ -29,6 +29,8 @@ import jakarta.servlet.http.HttpSession;
 public class AuthController {
 
     private static final String ERROR_MESSAGE_ATTRIBUTE = "errorMessage";
+    private static final String RESET_USER_ID_SESSION_ATTRIBUTE = "verifiedResetUserId";
+    private static final String RESET_TOKEN_SESSION_ATTRIBUTE = "verifiedResetToken";
 
     private final UserService userService;
     private final EmailService emailService;
@@ -77,17 +79,16 @@ public class AuthController {
     }
 
     @GetMapping("/reset-password")
-    public String resetPasswordPage(
-            @RequestParam(required = false) String token,
-            Model model) {
-
-        if (token == null || token.isBlank()) {
-            model.addAttribute(ERROR_MESSAGE_ATTRIBUTE,
-                    "Invalid reset link. Please request a new one.");
-        } else {
-            model.addAttribute("token", token);
+    public String resetPasswordPage(HttpSession session) {
+        if (!hasVerifiedReset(session)) {
+            return "redirect:/verify-reset-code";
         }
         return "reset-password";
+    }
+
+    @GetMapping("/verify-reset-code")
+    public String verifyResetCodePage() {
+        return "verify-reset-code";
     }
 
     /* -------------------------------------------
@@ -131,15 +132,12 @@ public class AuthController {
         try {
             // Authenticate against the database
             Authentication auth =
-                    authenticationManager.authenticate(
-                            new UsernamePasswordAuthenticationToken(
-                                    username, password));
+                    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 
             // Store in security context
-            SecurityContextHolder.getContext()
-                    .setAuthentication(auth);
+            SecurityContextHolder.getContext().setAuthentication(auth);
 
-            // Bind to HTTP session so subsequent
+            // Bind to HTTP session so later
             // requests in Postman are authenticated
             session.setAttribute(
                     HttpSessionSecurityContextRepository
@@ -235,34 +233,23 @@ public class AuthController {
         String email     = body.getOrDefault(
                 "email",     "").trim();
 
-        // ── Validation ────────────────────────
+        // User validation
         if (username.isBlank()) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body(error("Username is required."));
         }
-        if (username.length() < 3) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(error(
-                            "Username must be at least 3 characters."));
+        if (!username.matches("^[a-zA-Z0-9_]{3,20}$")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error("Username must be 3-20 characters and can only contain letters, numbers, and underscores."));
         }
         if (password.length() < 8) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(error(
-                            "Password must be at least 8 characters."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error("Password must be at least 8 characters."));
         }
         if (!password.equals(confirmPassword)) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(error("Passwords do not match."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error("Passwords do not match."));
         }
         if (email.isBlank() || !email.contains("@")) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(error(
-                            "A valid email address is required."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error("A valid email address is required."));
         }
 
         try {
@@ -302,9 +289,7 @@ public class AuthController {
             RedirectAttributes redirectAttributes) {
 
         if (password.length() < 8) {
-            redirectAttributes.addFlashAttribute(
-                    ERROR_MESSAGE_ATTRIBUTE,
-                    "Password must be at least 8 characters.");
+            redirectAttributes.addFlashAttribute(ERROR_MESSAGE_ATTRIBUTE, "Password must be at least 8 characters.");
             return "redirect:/register";
         }
         if (!password.equals(confirmPassword)) {
@@ -372,7 +357,7 @@ public class AuthController {
         // Always return this exact message
         return ResponseEntity.ok(success(
                 "If an account exists with that email address, " +
-                        "a password reset link has been sent. " +
+                        "a verification code has been sent. " +
                         "Please check your inbox."));
     }
 
@@ -380,7 +365,10 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public String forgotPasswordForm(
             @RequestParam String email,
+            HttpSession session,
             RedirectAttributes redirectAttributes) {
+
+        clearVerifiedReset(session);
 
         try {
             String token =
@@ -393,10 +381,38 @@ public class AuthController {
         redirectAttributes.addFlashAttribute(
                 "successMessage",
                 "If an account exists with that email, " +
-                        "a reset link has been sent. " +
+                        "a verification code has been sent. " +
                         "Please check your inbox.");
 
-        return "redirect:/forgot-password";
+        return "redirect:/verify-reset-code";
+    }
+
+    @PostMapping("/verify-reset-code")
+    public String verifyResetCodeForm(
+            @RequestParam String code,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+
+        String normalizedCode = code == null ? "" : code.trim();
+        if (!normalizedCode.matches("\\d{6}")) {
+            redirectAttributes.addFlashAttribute(
+                    ERROR_MESSAGE_ATTRIBUTE,
+                    "Please enter the 6-digit verification code.");
+            return "redirect:/verify-reset-code";
+        }
+
+        try {
+            Long userId = userService.verifyPasswordResetToken(normalizedCode);
+            session.setAttribute(RESET_USER_ID_SESSION_ATTRIBUTE, userId);
+            session.setAttribute(RESET_TOKEN_SESSION_ATTRIBUTE, normalizedCode);
+            return "redirect:/reset-password";
+        } catch (RuntimeException e) {
+            clearVerifiedReset(session);
+            redirectAttributes.addFlashAttribute(
+                    ERROR_MESSAGE_ATTRIBUTE,
+                    e.getMessage());
+            return "redirect:/verify-reset-code";
+        }
     }
 
     // ─────────────────────────────────────────
@@ -466,25 +482,35 @@ public class AuthController {
     // Thymeleaf form handler for browser reset-password page
     @PostMapping("/reset-password")
     public String resetPasswordForm(
-            @RequestParam String token,
             @RequestParam String password,
             @RequestParam String confirmPassword,
+            HttpSession session,
             RedirectAttributes redirectAttributes) {
+
+        if (!hasVerifiedReset(session)) {
+            redirectAttributes.addFlashAttribute(
+                    ERROR_MESSAGE_ATTRIBUTE,
+                    "Verify your reset code before choosing a new password.");
+            return "redirect:/verify-reset-code";
+        }
 
         if (!password.equals(confirmPassword)) {
             redirectAttributes.addFlashAttribute(
                     ERROR_MESSAGE_ATTRIBUTE, "Passwords do not match.");
-            return "redirect:/reset-password?token=" + token;
+            return "redirect:/reset-password";
         }
         if (password.length() < 8) {
             redirectAttributes.addFlashAttribute(
                     ERROR_MESSAGE_ATTRIBUTE,
                     "Password must be at least 8 characters.");
-            return "redirect:/reset-password?token=" + token;
+            return "redirect:/reset-password";
         }
 
         try {
-            userService.resetPassword(token, password);
+            userService.resetPassword(
+                    (String) session.getAttribute(RESET_TOKEN_SESSION_ATTRIBUTE),
+                    password);
+            clearVerifiedReset(session);
             redirectAttributes.addFlashAttribute(
                     "successMessage",
                     "Password reset successfully. " +
@@ -492,9 +518,10 @@ public class AuthController {
             return "redirect:/login";
 
         } catch (RuntimeException e) {
+            clearVerifiedReset(session);
             redirectAttributes.addFlashAttribute(
                     ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
-            return "redirect:/reset-password?token=" + token;
+            return "redirect:/verify-reset-code";
         }
     }
 
@@ -502,6 +529,16 @@ public class AuthController {
     // PRIVATE HELPERS
     // Keeps response building consistent
     // ═════════════════════════════════════════
+
+    private boolean hasVerifiedReset(HttpSession session) {
+        return session.getAttribute(RESET_USER_ID_SESSION_ATTRIBUTE) instanceof Long
+                && session.getAttribute(RESET_TOKEN_SESSION_ATTRIBUTE) instanceof String;
+    }
+
+    private void clearVerifiedReset(HttpSession session) {
+        session.removeAttribute(RESET_USER_ID_SESSION_ATTRIBUTE);
+        session.removeAttribute(RESET_TOKEN_SESSION_ATTRIBUTE);
+    }
 
     private Map<String, Object> success(String message) {
         Map<String, Object> response = new LinkedHashMap<>();
