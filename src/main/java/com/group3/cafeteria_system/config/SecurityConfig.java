@@ -44,7 +44,9 @@ public class SecurityConfig {
             throws Exception {
 
         http.authenticationProvider(authenticationProvider())
+
                 .csrf(csrf -> csrf.disable())
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/",
@@ -61,10 +63,12 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/images/**"
                         ).permitAll()
+
                         .requestMatchers(
                                 "/staff/**",
                                 "/api/staff/**"
                         ).hasAnyRole("STAFF", "ADMIN")
+
                         .anyRequest().authenticated()
                 )
 
@@ -84,12 +88,14 @@ public class SecurityConfig {
                         .permitAll()
                 )
 
-                .headers(headers -> headers
-                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
-                )
-
+//                Currently, this line commented out enables the menuu item cards to be soft deleted.
+//                code breaks if this is not commented out for some reason, but can cause login issues
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/h2-console/**")
+                )
+
+                .headers(headers -> headers
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                 )
 
                 .exceptionHandling(ex -> ex
@@ -105,8 +111,7 @@ public class SecurityConfig {
                                         response.sendRedirect("/login");
                                     }
                                 })
-                )
-        ;
+                );
 
         return http.build();
     }

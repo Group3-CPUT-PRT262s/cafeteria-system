@@ -2,6 +2,7 @@ package com.group3.cafeteria_system.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -10,8 +11,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.group3.cafeteria_system.model.Category;
 import com.group3.cafeteria_system.model.MenuItem;
+import com.group3.cafeteria_system.repository.TimeSlotRepository;
 import com.group3.cafeteria_system.service.CategoryService;
 import com.group3.cafeteria_system.service.MenuService;
+import com.group3.cafeteria_system.service.UserService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -20,10 +23,17 @@ public class PageController {
 
     private final MenuService menuService;
     private final CategoryService categoryService;
+    private final TimeSlotRepository timeSlotRepository;
+    private final UserService userService;
 
-    public PageController(MenuService menuService, CategoryService categoryService) {
+    public PageController(MenuService menuService,
+                          CategoryService categoryService,
+                          TimeSlotRepository timeSlotRepository,
+                          UserService userService) {
         this.menuService = menuService;
         this.categoryService = categoryService;
+        this.timeSlotRepository = timeSlotRepository;
+        this.userService = userService;
     }
 
     @GetMapping("/")
@@ -114,8 +124,23 @@ public class PageController {
             return 0;
         }
         return cart.values().stream()
-                .filter(java.util.Objects::nonNull)
-                .mapToInt(Integer::intValue)
+                .filter(Objects::nonNull)
+                .mapToInt(value -> value)
                 .sum();
+    }
+
+
+    @GetMapping("/staff/settings")
+    public String staffSettings(Model model) {
+        model.addAttribute("categories",
+                categoryService.getAllCategories());
+        model.addAttribute("timeSlots",
+                timeSlotRepository.findAll());
+        model.addAttribute("users",
+                userService.getAllUsers());
+        model.addAttribute("activePage",  "settings");
+        model.addAttribute("pageTitle",
+                "Settings | Campus Cafeteria");
+        return "staff/settings";
     }
 }
