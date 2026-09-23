@@ -3,7 +3,8 @@ package com.group3.cafeteria_system.service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
+//import java.util.UUID;
+import java.security.SecureRandom;
 
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -248,30 +249,35 @@ public class UserService implements UserDetailsService {
     // ---------------------------------------------------------
 
     /*
-     * Generate a password reset token for a user.
+     * Generate a 6-digit password reset code for a user.
      */
-    public String generatePasswordResetToken(
-            String email) {
+    public String generatePasswordResetToken(String email) {
 
-        String normalizedEmail =
-                normalizeEmail(email);
+        String normalizedEmail = normalizeEmail(email);
 
         User user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new RuntimeException("No account found with that email address.")
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "No account found with that email address."
+                        )
                 );
 
+        // Remove any existing reset codes for this user
+        tokenRepository.deleteByUserId(user.getUserId());
 
-        // Remove any existing unused tokens
-        tokenRepository.deleteByUserId(user.getUserId()
+        // Generate a secure 6-digit code
+        SecureRandom secureRandom = new SecureRandom();
+
+        String token = String.format(
+                "%06d", secureRandom.nextInt(1_000_000)
         );
 
-
-        // Generate a secure unique token
-        String token = UUID.randomUUID().toString();
-
-
-        // Save token
-        tokenRepository.save(new PasswordResetToken(token, user.getUserId())
+        // Save the code
+        tokenRepository.save(
+                new PasswordResetToken(
+                        token,
+                        user.getUserId()
+                )
         );
 
         return token;
@@ -279,47 +285,76 @@ public class UserService implements UserDetailsService {
 
 
     /*
-     * Reset a user's password using a valid token.
+     * Verify a password reset code.
+     *
+     * Returns the user ID associated with the valid code.
+     */
+    public Long verifyPasswordResetToken(String token) {
+
+        PasswordResetToken resetToken =
+                tokenRepository.findByToken(token)
+                        .orElseThrow(() ->
+                                new BadCredentialsException(
+                                        "Invalid or expired verification code."
+                                )
+                        );
+
+        // Check whether the code is still valid
+        if (!resetToken.isValid()) {
+
+            throw new BadCredentialsException(
+                    "This verification code has expired "
+                            + "or has already been used. "
+                            + "Please request a new code."
+            );
+        }
+
+        return resetToken.getUserId();
+    }
+
+
+    /*
+     * Reset a user's password using a valid reset code.
      */
     public void resetPassword(
             String token,
             String newPassword) {
 
         PasswordResetToken resetToken =
-                tokenRepository.findByToken(token).orElseThrow(() ->
-                                new RuntimeException("Invalid or expired reset link."
-                                ));
+                tokenRepository.findByToken(token)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Invalid or expired verification code."
+                                )
+                        );
 
-
-        // Check whether token is still valid
+        // Check whether the code is still valid
         if (!resetToken.isValid()) {
 
             throw new BadCredentialsException(
-                    "This reset link has expired "
+                    "This verification code has expired "
                             + "or has already been used. "
-                            + "Please request a new one."
+                            + "Please request a new code."
             );
         }
 
-
-        // Find the user
+        // Find the user associated with the code
         User user = userRepository
                 .findById(resetToken.getUserId())
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "User not found."
-                        ));
+                        )
+                );
 
-
-        // Encode and update password
+        // Encode and update the password
         user.setPasswordHash(
                 passwordEncoder.encode(newPassword)
         );
 
         userRepository.save(user);
 
-
-        // Mark token as used
+        // Mark the reset code as used
         resetToken.setUsed(true);
 
         tokenRepository.save(resetToken);

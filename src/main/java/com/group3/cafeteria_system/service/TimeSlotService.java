@@ -3,6 +3,7 @@ package com.group3.cafeteria_system.service;
 import com.group3.cafeteria_system.model.TimeSlot;
 import com.group3.cafeteria_system.repository.TimeSlotRepository;
 import org.springframework.stereotype.Service;
+import java.util.List;
 
 import java.util.Objects;
 
@@ -48,4 +49,6 @@ public class TimeSlotService {
         return timeSlotRepository.findById(timeSlotId)
                 .orElseThrow(() -> new RuntimeException("Time slot not found."));
     }
+
+
 }

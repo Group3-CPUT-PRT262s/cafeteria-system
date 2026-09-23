@@ -87,13 +87,13 @@ public class StaffController {
     }
 
     @GetMapping("/staff/menu/{id}/edit")
-    public String editMenuItem(@PathVariable Long id,
-                               Model model) {
+    public String editMenuItem(@PathVariable Long id, Model model) {
         menuService.getItemById(id).ifPresent(item -> model.addAttribute("item", item));
         model.addAttribute("categories", categoryService.getAllCategories());
         model.addAttribute("pageTitle", "Edit Menu Item | Campus Cafeteria");
         return "staff/edit-item";
     }
+
     // POST /api/staff/categories
     // ─────────────────────────────────────────
     // DATABASE OPERATION: CREATE

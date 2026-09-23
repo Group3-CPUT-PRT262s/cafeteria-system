@@ -7,14 +7,14 @@
 
     <title>Verify Reset Code | Campus Cafeteria</title>
 
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
 </head>
 
 <body>
 
-<div class="auth-container">
+<main class="auth-center-wrapper">
 
-    <div class="auth-card">
+    <section class="auth-center-card">
 
         <div class="auth-header">
             <h1>Enter reset code</h1>
@@ -24,14 +24,12 @@
             </p>
         </div>
 
-        <!-- Error message -->
-        <div th:if="${error}" class="alert alert-error">
-            <span th:text="${error}"></span>
+        <div th:if="${errorMessage}" class="auth-alert auth-alert-danger">
+            <span th:text="${errorMessage}"></span>
         </div>
 
-        <!-- Success message -->
-        <div th:if="${message}" class="alert alert-success">
-            <span th:text="${message}"></span>
+        <div th:if="${successMessage}" class="auth-alert auth-alert-success">
+            <span th:text="${successMessage}"></span>
         </div>
 
         <form th:action="@{/verify-reset-code}" method="post" id="verifyCodeForm">
@@ -87,9 +85,9 @@
 
         </div>
 
-    </div>
+    </section>
 
-</div>
+</main>
 
 <script>
     const codeInput = document.getElementById("code");
