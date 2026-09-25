@@ -17,26 +17,24 @@ public class EmailService {
         this.mailSender = mailSender;
     }
 
-    public void sendPasswordResetEmail(String toEmail,
-                                       String token) {
-        String resetLink =
-                "http://localhost:8080/reset-password?token=" + token; // test link for our dev app
+    public void sendPasswordResetEmail(String toEmail, String token) {
 
         SimpleMailMessage message = new SimpleMailMessage();
+
         message.setFrom(fromAddress);
         message.setTo(toEmail);
-        message.setSubject("Campus Cafeteria Account — Password Reset");
+
+        message.setSubject("Campus Cafeteria Account - Password Reset Code");
+
         message.setText(
                 "Hello,\n\n" +
-                        "You requested a password reset for your " +
-                        "Campus Cafeteria account.\n\n" +
-                        "Use the link below to set a new password.\n" +
-                        "This link expires in 30 minutes.\n\n" +
-                        resetLink + "\n\n" +
-                        "If you did not request this, " +
-                        "you can safely ignore this email.\n\n" +
-                        "Campus Cafeteria"
-        ); // message will be customised better later, test for now.
+                        "You requested a password reset for your Campus Cafeteria account.\n\n" +
+                        "Your password reset code is:\n\n" +
+                        token + "\n\n" +
+                        "This code will expire in 10 minutes and can only be used once.\n\n" +
+                        "If you did not request a password reset, you can safely ignore this email.\n\n" +
+                        "Regards,\nThe Campus Cafeteria Team"
+        );
 
         mailSender.send(message);
     }

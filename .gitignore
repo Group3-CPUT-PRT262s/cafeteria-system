@@ -20,6 +20,7 @@ build/
 
 # ── VS Code ───────────────────────────────────
 .vscode/
+.env
 
 # ── H2 Database files ─────────────────────────
 # Each developer has their own local copy
@@ -48,3 +49,6 @@ Desktop.ini
 
 # ── Linux ─────────────────────────────────────
 *~
+HELP.md
+mvnw
+mvnw.cmd

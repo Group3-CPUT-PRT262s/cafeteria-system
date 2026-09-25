@@ -10,6 +10,7 @@ import java.util.Optional;
 public class MenuService {
 
     private final MenuItemRepository menuItemRepository;
+    String menuMessage = "Menu item not found with id: ";
 
     public MenuService(MenuItemRepository menuItemRepository) {
         this.menuItemRepository = menuItemRepository;
@@ -18,7 +19,7 @@ public class MenuService {
     // Retrieval methods
 
     public List<MenuItem> getAllActiveItems() {
-        return menuItemRepository.findAll();
+        return menuItemRepository.findByIsActiveTrue();
     }
 
     // Now takes a category ID instead of a category name string
@@ -46,9 +47,7 @@ public class MenuService {
 
     // Update an existing item (name, price, description, category)
     public MenuItem updateItem(Long id, MenuItem updatedItem) {
-        MenuItem item = menuItemRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Menu item not found with id: " + id));
+        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
 
         item.setItemName(updatedItem.getItemName());
         item.setDescription(updatedItem.getDescription());
@@ -59,27 +58,21 @@ public class MenuService {
     }
 
     public MenuItem updateStatus(Long id, String status) {
-        MenuItem item = menuItemRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Menu item not found with id: " + id));
+        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
 
         item.setStatus(status);
         return menuItemRepository.save(item);
     }
 
     public void removeItem(Long id) {
-        MenuItem item = menuItemRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Menu item not found with id: " + id));
+        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
 
         item.softDelete();
         menuItemRepository.save(item);
     }
 
     public void restoreItem(Long id) {
-        MenuItem item = menuItemRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Menu item not found with id: " + id));
+        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
 
         item.restore();
         menuItemRepository.save(item);

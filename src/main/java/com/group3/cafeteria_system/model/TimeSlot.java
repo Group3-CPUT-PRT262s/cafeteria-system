@@ -49,7 +49,6 @@ public class TimeSlot {
     public void setSlotTime(String slotTime) {this.slotTime = slotTime;}
     public void setTimeSlotId(Long timeSlotId) {this.timeSlotId = timeSlotId;}
     public void setMaxOrders(Integer maxOrders) {this.maxOrders = maxOrders;}
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
-    }
+    public void setIsActive(Boolean isActive) {this.isActive = isActive;}
+
 }
