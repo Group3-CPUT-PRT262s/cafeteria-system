@@ -2,7 +2,6 @@ package com.group3.cafeteria_system.service;
 
 import com.group3.cafeteria_system.model.MenuItem;
 import com.group3.cafeteria_system.repository.MenuItemRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;

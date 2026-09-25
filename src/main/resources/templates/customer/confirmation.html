@@ -4,23 +4,78 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <th:block th:replace="~{base :: head}"></th:block>
-    <title th:text="${pageTitle}">Menu</title>
-    <!-- page styles go here -->
-    <style>
-        /* ... your existing menu styles ... */
-    </style>
+    <title th:text="${pageTitle ?: 'Finalize Order'}">Finalize Order</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../static/css/app.css"/>
 </head>
 <body>
 <th:block th:replace="~{base :: layout(~{::content})}">
     <th:block th:fragment="content">
 
-        <!-- ALL your existing menu page HTML goes here -->
+    <!-- Main Content Area -->
+    <main class="cc-main">
+
+        <div class="container confirmation-shell">
+            
+            <div class="page-header text-center">
+                <h1>Finalize Order</h1>
+            </div>
+
+            <div class="card p-4 mx-auto mb-4 bg-light border-0" style="max-width: 450px;">
+                <h5 class="mb-3 text-center fw-bold" style="color: var(--cc-navy);">Your Cart</h5>
+                
+                <ul class="list-unstyled text-start mb-0 border-bottom pb-3">
+
+                    <li th:each="entry : ${cartItems}" class="d-flex justify-content-between small mb-2">
+                        <span>
+         
+                            <span th:text="${entry.value}">1</span>x 
+                            <span th:text="${entry.key.itemName}">Item Name</span>
+                        </span>
+                        
+                        <!-- We can also calculate the subtotal directly in Thymeleaf -->
+                        <span class="fw-bold" th:text="'R' + (${entry.key.price} * ${entry.value})">R0.00</span>
+                    </li>
+                </ul>
+                
+                <div class="d-flex justify-content-between fw-bold small mt-3">
+                    <span>Total Due</span>
+                    <span th:text="'R' + ${totalPrice}">R0.00</span>
+                </div>
+            </div>
+
+            <div class="cc-card mx-auto mt-4" style="max-width: 450px;">
+                <form th:action="@{/payment}" method="POST">
+                    
+                    <h5 class="mb-4" style="color: var(--cc-navy); font-weight: 700;">Schedule Pickup</h5>
+                    
+                    <div class="d-flex justify-content-center flex-column gap-3 mb-4">
+                        <input type="radio" class="btn-check" name="timeSlotId" id="time1" value="1" required>
+                        <label class="btn btn-outline-secondary rounded-pill py-2 fw-bold" for="time1">12:30-13:00</label>
+
+                        <input type="radio" class="btn-check" name="timeSlotId" id="time2" value="2">
+                        <label class="btn btn-outline-secondary rounded-pill py-2 fw-bold" for="time2">13:30-14:00</label>
+
+                        <input type="radio" class="btn-check" name="timeSlotId" id="time3" value="3">
+                        <label class="btn btn-outline-secondary rounded-pill py-2 fw-bold" for="time3">14:30-15:00</label>
+                    </div>
+
+                    
+                    <div class="d-flex flex-column gap-3 mt-4">
+                        <a th:href="@{/cart}" class="btn btn-light border rounded-pill py-2 fw-bold text-secondary">Cart</a>
+                        <a th:href="@{/cancel}" class="btn btn-light border rounded-pill py-2 fw-bold text-secondary">Cancel Order</a>
+                        
+                        <button type="submit" class="btn btn-cc-primary py-2 mt-2">Confirm Order</button>
+                    </div>
+                    
+                </form>
+            </div>
+
+        </div>
+    </main>
 
     </th:block>
 </th:block>
-<!-- page scripts go here -->
-<script>
-    /* ... your existing menu scripts ... */
-</script>
+
 </body>
 </html>
