@@ -4,23 +4,956 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <th:block th:replace="~{base :: head}"></th:block>
-    <title th:text="${pageTitle}">Menu</title>
+    <title th:text="${pageTitle}">Your Cart | Campus Cafeteria</title>
     <!-- page styles go here -->
     <style>
-        /* ... your existing menu styles ... */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            font-family: Arial, Helvetica, sans-serif;
+
+            background: linear-gradient(
+                135deg,
+                #f8fbff 0%,
+                #eef7ff 100%
+            );
+
+            color: #102027;
+        }
+
+
+        /* =========================
+           PAGE
+           ========================= */
+
+        .cart-page {
+
+            min-height: 100vh;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+
+            padding: 70px 20px 50px;
+        }
+
+
+        /* =========================
+           HEADER
+           ========================= */
+
+        .cart-header {
+            text-align: center;
+
+            margin-bottom: 28px;
+        }
+
+
+        .cart-icon {
+
+            width: 58px;
+            height: 58px;
+
+            margin: 0 auto 12px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: #dff2ff;
+
+            border-radius: 50%;
+
+            font-size: 27px;
+        }
+
+
+        .cart-title {
+
+            margin: 0;
+
+            font-size: 50px;
+
+            font-weight: 700;
+
+            letter-spacing: -1.5px;
+
+            color: #0c1d24;
+        }
+
+
+        .cart-subtitle {
+
+            margin-top: 8px;
+
+            color: #6d7d83;
+
+            font-size: 15px;
+        }
+
+
+        /* =========================
+           CART CARD
+           ========================= */
+
+        .cart-box {
+
+            width: 500px;
+
+            max-width: 100%;
+
+            background: rgba(255, 255, 255, 0.95);
+
+            border-radius: 22px;
+
+            padding: 24px 25px 26px;
+
+            box-shadow:
+                0 12px 30px rgba(35, 78, 104, 0.12);
+
+            border: 1px solid #e6f0f6;
+        }
+
+
+        /* =========================
+           CART ITEMS
+           ========================= */
+
+        .cart-item {
+
+            display: flex;
+
+            justify-content: space-between;
+            align-items: center;
+
+            padding: 14px 6px;
+
+            border-bottom: 1px solid #edf1f4;
+        }
+
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+
+        .item-left {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+        }
+
+
+        .item-icon {
+
+            width: 40px;
+            height: 40px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: #f0f8fd;
+
+            border-radius: 12px;
+
+            font-size: 18px;
+        }
+
+
+        .item-name {
+
+            font-size: 17px;
+
+            font-weight: 700;
+
+            color: #102027;
+        }
+
+
+        .item-quantity {
+
+            color: #7a898f;
+
+            font-size: 13px;
+
+            margin-top: 3px;
+        }
+
+
+        .item-price {
+
+            font-size: 17px;
+
+            font-weight: 700;
+
+            color: #0879c9;
+        }
+
+
+        /* =========================
+           TOTAL
+           ========================= */
+
+        .total-section {
+
+            margin-top: 10px;
+
+            padding: 20px 6px 5px;
+
+            border-top: 2px solid #e1e7eb;
+        }
+
+
+        .total-row {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+        }
+
+
+        .total-label {
+
+            font-size: 18px;
+
+            font-weight: 700;
+
+            color: #26363c;
+        }
+
+
+        .total-price {
+
+            font-size: 27px;
+
+            font-weight: 800;
+
+            color: #0879c9;
+        }
+
+
+        /* =========================
+           BUTTONS
+           ========================= */
+
+        .cart-actions {
+
+            width: 500px;
+
+            max-width: 100%;
+
+            margin-top: 25px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+
+            gap: 12px;
+        }
+
+
+        .cart-button {
+
+            width: 205px;
+
+            height: 48px;
+
+            border: none;
+
+            border-radius: 25px;
+
+            font-size: 15px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease,
+                background 0.2s ease;
+
+            box-shadow:
+                0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+
+
+        .cart-button:hover {
+
+            transform: translateY(-2px);
+
+            box-shadow:
+                0 7px 15px rgba(0, 0, 0, 0.12);
+        }
+
+
+        /* ADD MORE */
+
+        .add-button {
+
+            background: #ffffff;
+
+            color: #17343d;
+
+            border: 1px solid #dce7ed;
+        }
+
+
+        .add-button:hover {
+
+            background: #f2f9fd;
+        }
+
+
+        /* CANCEL */
+
+        .cancel-button {
+
+            background: #f1f3f4;
+
+            color: #59666b;
+        }
+
+
+        .cancel-button:hover {
+
+            background: #e5e8ea;
+        }
+
+
+        /* CHECKOUT */
+
+        .checkout-button {
+
+            background: linear-gradient(
+                135deg,
+                #69c5f5,
+                #42aee9
+            );
+
+            color: #06202c;
+
+            box-shadow:
+                0 6px 16px rgba(66, 174, 233, 0.28);
+        }
+
+
+        .checkout-button:hover {
+
+            background: linear-gradient(
+                135deg,
+                #56b9ed,
+                #319fdd
+            );
+
+            box-shadow:
+                0 8px 20px rgba(66, 174, 233, 0.35);
+        }
+
+
+        /* =========================
+           EMPTY CART
+           ========================= */
+
+        .empty-cart {
+
+            text-align: center;
+
+            padding: 35px 10px;
+        }
+
+
+        .empty-cart-icon {
+
+            font-size: 48px;
+
+            margin-bottom: 10px;
+        }
+
+
+        .empty-cart h3 {
+
+            margin: 5px 0;
+
+            font-size: 21px;
+        }
+
+
+        .empty-cart p {
+
+            margin: 0;
+
+            color: #78878d;
+
+            font-size: 14px;
+        }
+
+
+        /* =========================
+           MESSAGE
+           ========================= */
+
+        .message {
+
+            width: 500px;
+
+            max-width: 100%;
+
+            margin-bottom: 15px;
+
+            padding: 11px 15px;
+
+            border-radius: 10px;
+
+            background: #fff1f1;
+
+            color: #b42318;
+
+            text-align: center;
+
+            font-size: 14px;
+
+            display: none;
+        }
+
+
+        /* =========================
+           MOBILE
+           ========================= */
+
+        @media (max-width: 600px) {
+
+            .cart-page {
+
+                padding-top: 45px;
+            }
+
+
+            .cart-title {
+
+                font-size: 40px;
+            }
+
+
+            .cart-box {
+
+                padding: 20px;
+            }
+
+
+            .cart-item {
+
+                padding: 12px 2px;
+            }
+
+
+            .item-name {
+
+                font-size: 15px;
+            }
+
+
+            .item-price {
+
+                font-size: 15px;
+            }
+
+
+            .total-price {
+
+                font-size: 24px;
+            }
+
+        }
+
     </style>
 </head>
 <body>
 <th:block th:replace="~{base :: layout(~{::content})}">
     <th:block th:fragment="content">
 
-        <!-- ALL your existing menu page HTML goes here -->
+    <div class="cart-page">
+
+
+        <!-- HEADER -->
+    
+        <div class="cart-header">
+    
+            <div class="cart-icon">
+                
+            </div>
+    
+            <h1 class="cart-title">
+                Your Cart
+            </h1>
+    
+            <p class="cart-subtitle">
+                Review your order before checkout
+            </p>
+    
+        </div>
+    
+    
+        <!-- MESSAGE -->
+    
+        <div
+            id="message"
+            class="message">
+        </div>
+    
+    
+        <!-- CART -->
+    
+        <div class="cart-box">
+    
+    
+            <!-- CART ITEMS -->
+    
+            <div id="cartItems"></div>
+    
+    
+            <!-- EMPTY CART -->
+    
+            <div
+                id="emptyCart"
+                class="empty-cart"
+                style="display: none;">
+    
+                <div class="empty-cart-icon">
+                    🛒
+                </div>
+    
+                <h3>
+                    Your cart is empty
+                </h3>
+    
+                <p>
+                    Add something delicious from the menu.
+                </p>
+    
+            </div>
+    
+    
+            <!-- TOTAL -->
+    
+            <div
+                id="totalSection"
+                class="total-section">
+    
+                <div class="total-row">
+    
+                    <span class="total-label">
+                        Total Price
+                    </span>
+    
+                    <span
+                        id="totalPrice"
+                        class="total-price">
+                        R0
+                    </span>
+    
+                </div>
+    
+            </div>
+    
+        </div>
+    
+    
+        <!-- ACTION BUTTONS -->
+    
+        <div class="cart-actions">
+    
+    
+            <button
+                class="cart-button add-button"
+                onclick="addMore()">
+    
+                ＋&nbsp; Add More
+    
+            </button>
+    
+    
+            <button
+                class="cart-button cancel-button"
+                onclick="cancelOrder()">
+    
+                Cancel Order
+    
+            </button>
+    
+    
+            <button
+                id="checkoutButton"
+                class="cart-button checkout-button"
+                onclick="proceedToCheckout()">
+    
+                Proceed To Checkout&nbsp; →
+    
+            </button>
+    
+    
+        </div>
+    
+    
+    </div>
 
     </th:block>
 </th:block>
 <!-- page scripts go here -->
 <script>
-    /* ... your existing menu scripts ... */
+    let cartData = null;
+
+
+/* =========================
+   LOAD CART
+   ========================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        loadCart();
+
+    }
+);
+
+
+async function loadCart() {
+
+    try {
+
+        const response =
+            await fetch("/api/cart");
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Could not load cart."
+            );
+
+        }
+
+
+        cartData =
+            await response.json();
+
+
+        displayCart(cartData);
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        showMessage(
+            "Unable to load your cart."
+        );
+
+    }
+
+}
+
+
+/* =========================
+   DISPLAY CART
+   ========================= */
+
+function displayCart(cart) {
+
+    const itemsContainer =
+        document.getElementById(
+            "cartItems"
+        );
+
+    const emptyCart =
+        document.getElementById(
+            "emptyCart"
+        );
+
+    const totalSection =
+        document.getElementById(
+            "totalSection"
+        );
+
+    const checkoutButton =
+        document.getElementById(
+            "checkoutButton"
+        );
+
+
+    itemsContainer.innerHTML = "";
+
+
+    /* EMPTY CART */
+
+    if (
+        !cart.items ||
+        cart.items.length === 0
+    ) {
+
+        emptyCart.style.display =
+            "block";
+
+        totalSection.style.display =
+            "none";
+
+        checkoutButton.disabled =
+            true;
+
+        checkoutButton.style.opacity =
+            "0.5";
+
+        return;
+
+    }
+
+
+    emptyCart.style.display =
+        "none";
+
+    totalSection.style.display =
+        "block";
+
+    checkoutButton.disabled =
+        false;
+
+    checkoutButton.style.opacity =
+        "1";
+
+
+    /* ITEMS */
+
+    cart.items.forEach(
+        function (item) {
+
+            const row =
+                document.createElement(
+                    "div"
+                );
+
+
+            row.className =
+                "cart-item";
+
+
+            row.innerHTML = `
+
+                <div class="item-left">
+
+                    <div class="item-icon">
+                        🍽️
+                    </div>
+
+                    <div>
+
+                        <div class="item-name">
+                            ${escapeHtml(
+                                item.itemName
+                            )}
+                        </div>
+
+                        <div class="item-quantity">
+
+                            ${item.quantity} ×
+                            R${Number(
+                                item.price
+                            ).toFixed(2)}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="item-price">
+
+                    R${Number(
+                        item.subtotal
+                    ).toFixed(2)}
+
+                </div>
+
+            `;
+
+
+            itemsContainer.appendChild(
+                row
+            );
+
+        }
+    );
+
+
+    /* TOTAL */
+
+    document.getElementById(
+        "totalPrice"
+    ).textContent =
+        "R" +
+        Number(
+            cart.totalPrice
+        ).toFixed(2);
+
+}
+
+
+/* =========================
+   ADD MORE
+   ========================= */
+
+function addMore() {
+
+    window.location.href =
+        "/menu";
+
+}
+
+
+/* =========================
+   CANCEL ORDER
+   ========================= */
+
+async function cancelOrder() {
+
+    const confirmed =
+        confirm(
+            "Are you sure you want to cancel your order?"
+        );
+
+
+    if (!confirmed) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/cart",
+                {
+                    method: "DELETE"
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Unable to cancel order."
+            );
+
+        }
+
+
+        window.location.href =
+            "/menu";
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        showMessage(
+            "Unable to cancel the order."
+        );
+
+    }
+
+}
+
+
+/* =========================
+   CHECKOUT
+   ========================= */
+
+function proceedToCheckout() {
+
+    if (
+        !cartData ||
+        !cartData.items ||
+        cartData.items.length === 0
+    ) {
+
+        showMessage(
+            "Your cart is empty."
+        );
+
+        return;
+
+    }
+
+
+    window.location.href =
+        "/confirmation";
+
+}
+
+
+/* =========================
+   MESSAGE
+   ========================= */
+
+function showMessage(message) {
+
+    const element =
+        document.getElementById(
+            "message"
+        );
+
+
+    element.textContent =
+        message;
+
+
+    element.style.display =
+        "block";
+
+
+    setTimeout(
+        function () {
+
+            element.style.display =
+                "none";
+
+        },
+        3000
+    );
+
+}
+
+
+/* =========================
+   HTML ESCAPING
+   ========================= */
+
+function escapeHtml(value) {
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
 </script>
 </body>
 </html>
