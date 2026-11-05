@@ -11,39 +11,119 @@
     <th:block th:replace="~{base :: layout(~{::content})}">
         <th:block th:fragment="content">
             <section class="customer-page">
-                <div class="customer-kicker text-dark">Checkout</div>
-                <h1>Choose your pickup and payment method</h1>
-                <p class="text-muted">Your order and selected payment method will be saved to the database. No external
-                    payment is taken in this demo.</p>
-                <form th:action="@{/checkout}" method="post" class="checkout-grid"><input type="hidden"
-                        th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="checkout-heading">
+                    <div>
+                        <div class="customer-kicker text-dark">Almost yours</div>
+                        <h1>Checkout</h1>
+                        <p>Choose a pickup time and pay securely with your demo wallet.</p>
+                    </div>
+                    <img class="checkout-art" th:src="@{/images/food-placeholder.svg}"
+                         alt="Illustration of a fresh cafeteria meal">
+                </div>
+                <div class="alert alert-danger" role="alert" th:if="${errorMessage}"
+                     th:text="${errorMessage}"></div>
+                <form th:action="@{/checkout}" method="post" class="checkout-grid">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <section class="customer-card">
-                        <h2>1. Pickup time</h2><label class="choice" th:each="slot : ${timeSlots}"><input type="radio"
-                                name="timeSlotId" th:value="${slot.timeSlotId}" required><strong class="ms-2"
-                                th:text="${slot.slotTime}"></strong><span class="float-end text-muted small"
-                                th:text="${slot.maxOrders} + ' orders max'"></span></label>
-                        <p class="text-muted small" th:if="${#lists.isEmpty(timeSlots)}">No pickup slots are available
-                            right now.</p>
-                        <h2 class="mt-4">2. Payment method</h2><label class="choice"><input type="radio"
-                                name="paymentMethod" value="CARD" required><strong class="ms-2">Card</strong><span
-                                class="float-end text-muted small">Recorded as demo payment</span></label><label
-                            class="choice"><input type="radio" name="paymentMethod" value="SNAPSCAN"><strong
-                                class="ms-2">SnapScan</strong></label><label class="choice"><input type="radio"
-                                name="paymentMethod" value="EFT"><strong class="ms-2">EFT</strong></label>
+                        <span class="profile-section-kicker">01 · Pickup</span>
+                        <h2>Choose your pickup time</h2>
+                        <label class="choice checkout-slot" th:each="slot : ${timeSlots}">
+                            <input type="radio" name="timeSlotId" th:value="${slot.timeSlotId}" required>
+                            <span class="checkout-slot-copy">
+                                <strong th:text="${slot.slotTime}"></strong>
+                                <span th:text="${slot.maxOrders} + ' order capacity'"></span>
+                            </span>
+                            <i class="bi bi-clock"></i>
+                        </label>
+                        <p class="text-muted small" th:if="${#lists.isEmpty(timeSlots)}">
+                            No pickup slots are available right now.
+                        </p>
+
+                        <div class="checkout-wallet">
+                            <span class="checkout-wallet-icon"><i class="bi bi-wallet2"></i></span>
+                            <div>
+                                <strong>Campus wallet</strong>
+                                <span>Demo credits only · no external payment is taken</span>
+                            </div>
+                            <strong class="checkout-wallet-balance"
+                                    th:text="'R' + ${#numbers.formatDecimal(walletBalance, 1, 'COMMA', 2, 'POINT')}">
+                                R500.00
+                            </strong>
+                        </div>
+                        <a class="checkout-wallet-link" th:href="@{/profile}">
+                            Need more credits? Top up your wallet <i class="bi bi-arrow-up-right"></i>
+                        </a>
                     </section>
+
                     <aside class="customer-card">
-                        <h2>Order summary</h2>
-                        <div id="checkoutLines"></div>
-                        <div class="summary-total"><span>Total</span><span id="checkoutTotal">R0.00</span></div><button
-                            class="btn btn-success w-100 mt-3">Place order</button><a class="btn btn-link w-100"
-                            th:href="@{/cart}">Back to cart</a>
+                        <span class="profile-section-kicker">02 · Review</span>
+                        <h2>Your order</h2>
+                        <div id="checkoutLines" class="checkout-lines">
+                            <p class="text-muted small">Loading your basket…</p>
+                        </div>
+                        <div class="summary-total">
+                            <span>Total due</span><strong id="checkoutTotal">R0.00</strong>
+                        </div>
+                        <p id="walletWarning" class="checkout-wallet-warning d-none" role="alert">
+                            Your wallet balance is below this order total. Add demo credits to continue.
+                        </p>
+                        <button id="payButton" class="btn btn-success w-100 mt-3"
+                                th:disabled="${#lists.isEmpty(timeSlots)}">
+                            <i class="bi bi-lock-fill me-1"></i> Pay with wallet
+                        </button>
+                        <a class="btn btn-link w-100" th:href="@{/cart}">Back to cart</a>
                     </aside>
                 </form>
             </section>
         </th:block>
     </th:block>
-    <script>
-    async function load() { const d = await (await fetch('/api/cart')).json(); document.querySelector('#checkoutLines').innerHTML = d.items.map(i => `<div class="order-line"><span>${i.quantity} × ${i.itemName}</span><strong>R${Number(i.subtotal).toFixed(2)}</strong></div>`).join(''); document.querySelector('#checkoutTotal').textContent = 'R' + Number(d.totalPrice).toFixed(2) } load();</script>
+    <script th:inline="javascript">
+        const walletBalance = Number('[[${walletBalance}]]');
+        const money = value => new Intl.NumberFormat('en-ZA', {
+            style: 'currency', currency: 'ZAR'
+        }).format(Number(value) || 0);
+        const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[character]));
+
+        async function loadCheckoutCart() {
+            const response = await fetch('/api/cart', { cache: 'no-store' });
+            if (!response.ok) throw new Error('Unable to load your basket. Please return to your cart.');
+            const cart = await response.json();
+            const lines = document.querySelector('#checkoutLines');
+            const payButton = document.querySelector('#payButton');
+
+            if (!cart.items.length) {
+                lines.innerHTML = '<p class="text-muted small">Your basket is empty. Add a meal before checkout.</p>';
+                payButton.disabled = true;
+                return;
+            }
+
+            lines.innerHTML = cart.items.map(item => `
+                <div class="order-line">
+                    <span>${Number(item.quantity)} × ${escapeHtml(item.itemName)}</span>
+                    <strong>${money(item.subtotal)}</strong>
+                </div>`).join('');
+            document.querySelector('#checkoutTotal').textContent = money(cart.totalPrice);
+            const insufficient = Number(cart.totalPrice) > walletBalance;
+            document.querySelector('#walletWarning').classList.toggle('d-none', !insufficient);
+            payButton.disabled = insufficient || !document.querySelector('input[name="timeSlotId"]:checked');
+
+            document.querySelectorAll('input[name="timeSlotId"]').forEach(input => {
+                input.addEventListener('change', () => {
+                    payButton.disabled = insufficient;
+                });
+            });
+        }
+
+        document.querySelector('#checkoutLines').addEventListener('click', event => {
+            if (event.target.closest('a')) event.preventDefault();
+        });
+        loadCheckoutCart().catch(error => {
+            document.querySelector('#checkoutLines').textContent = error.message;
+            document.querySelector('#payButton').disabled = true;
+        });
+    </script>
 </body>
 
 </html>

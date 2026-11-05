@@ -10,8 +10,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
 import com.group3.cafeteria_system.service.UserService;
+import com.group3.cafeteria_system.repository.UserRepository;
 
 @Configuration
 @EnableWebSecurity
@@ -19,10 +21,13 @@ public class SecurityConfig {
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;  // injected from PasswordEncoderConfig
+    private final UserRepository userRepository;
 
-    public SecurityConfig(UserService userService, PasswordEncoder passwordEncoder) {
+    public SecurityConfig(UserService userService, PasswordEncoder passwordEncoder,
+                          UserRepository userRepository) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
+        this.userRepository = userRepository;
     }
 
     @Bean
@@ -45,8 +50,6 @@ public class SecurityConfig {
 
         http.authenticationProvider(authenticationProvider())
 
-                .csrf(csrf -> csrf.disable())
-
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/",
@@ -58,11 +61,37 @@ public class SecurityConfig {
                                 "/api/menu/**",
                                 "/api/categories",
                                 "/api/time-slots",
-                                "/api/cart/**",
                                 "/css/**",
                                 "/js/**",
-                                "/images/**"
+                                "/images/**",
+                                "/uploads/**"
                         ).permitAll()
+
+                        .requestMatchers(
+                                "/menu",
+                                "/customer/menu",
+                                "/cart",
+                                "/api/cart/**",
+                                "/confirmation",
+                                "/checkout",
+                                "/customer/history",
+                                "/orders",
+                                "/orders/**",
+                                "/payment"
+                        ).hasRole("STUDENT")
+
+                        .requestMatchers(
+                                "/staff/settings",
+                                "/api/staff/categories",
+                                "/api/staff/categories/**",
+                                "/api/staff/time-slots",
+                                "/api/staff/time-slots/**",
+                                "/api/staff/users",
+                                "/api/staff/users/**",
+                                "/categories/**",
+                                "/users/**",
+                                "/time-slots/**"
+                        ).hasRole("ADMIN")
 
                         .requestMatchers(
                                 "/staff/**",
@@ -89,11 +118,11 @@ public class SecurityConfig {
                         .permitAll()
                 )
 
-//                Currently, this line commented out enables the menuu item cards to be soft deleted.
-//                code breaks if this is not commented out for some reason, but can cause login issues
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/h2-console/**")
                 )
+
+                .addFilterBefore(new AccountStatusFilter(userRepository), AuthorizationFilter.class)
 
                 .headers(headers -> headers
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
@@ -112,6 +141,20 @@ public class SecurityConfig {
                                         response.sendRedirect("/login");
                                     }
                                 })
+                        .accessDeniedHandler((request, response, exception) -> {
+                            boolean staff = request.isUserInRole("STAFF")
+                                    || request.isUserInRole("ADMIN");
+                            if (staff && !request.getRequestURI().startsWith("/api/")) {
+                                response.sendRedirect("/staff/dashboard");
+                            } else if (request.getRequestURI().startsWith("/api/")) {
+                                response.setStatus(403);
+                                response.setContentType("application/json");
+                                response.getWriter().write(
+                                        "{\"error\": \"Forbidden. You do not have access to this resource.\"}");
+                            } else {
+                                response.sendError(403);
+                            }
+                        })
                 );
 
         return http.build();

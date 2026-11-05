@@ -1,725 +1,208 @@
 <!DOCTYPE html>
-<html lang="en"
-      xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <th:block th:replace="~{base :: head}"></th:block>
-    <title th:text="${pageTitle}">Dashboard</title>
-    <style>
-        /* ── Dashboard layout ────────────────────── */
-        .dashboard-header {
-            display:         flex;
-            justify-content: space-between;
-            align-items:     flex-end;
-            margin-bottom:   1.5rem;
-            padding-top:     0.5rem;
-        }
-        .dashboard-title {
-            font-size:     1.6rem;
-            font-weight:   700;
-            color:         var(--cc-navy);
-            margin-bottom: 0.2rem;
-        }
-        .dashboard-subtitle {
-            color:     var(--cc-muted);
-            font-size: 0.9rem;
-            margin:    0;
-        }
-        /* ── Stats bar ───────────────────────────── */
-        .stats-bar {
-            display:               grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap:                   1rem;
-            margin-bottom:         1.75rem;
-        }
-        .stat-card {
-            background:    #fff;
-            border:        1px solid var(--cc-border);
-            border-radius: 14px;
-            padding:       1rem 1.25rem;
-            text-align:    center;
-        }
-        .stat-number {
-            font-size:     1.75rem;
-            font-weight:   700;
-            color:         var(--cc-navy);
-            line-height:   1;
-        }
-        .stat-label {
-            font-size:  0.78rem;
-            color:      var(--cc-muted);
-            margin-top: 4px;
-        }
-        /* ── Slot sections ───────────────────────── */
-        .slot-section {
-            margin-bottom: 1.5rem;
-        }
-        .slot-header {
-            display:         flex;
-            align-items:     center;
-            gap:             0.75rem;
-            margin-bottom:   0.75rem;
-            padding:         0.6rem 1rem;
-            background:      var(--cc-navy);
-            border-radius:   12px;
-            color:           #fff;
-        }
-        .slot-time {
-            font-size:   1rem;
-            font-weight: 700;
-        }
-        .slot-count {
-            background:    rgba(255,255,255,0.2);
-            border-radius: 20px;
-            padding:       0.15rem 0.65rem;
-            font-size:     0.78rem;
-            font-weight:   600;
-        }
-        .slot-empty {
-            color:      var(--cc-muted);
-            font-size:  0.85rem;
-            font-style: italic;
-            padding:    0.5rem 1rem;
-        }
-        /* ── Order cards in slot ─────────────────── */
-        .orders-grid {
-            display:               grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap:                   1rem;
-        }
-        .order-card {
-            background:    #fff;
-            border:        1px solid var(--cc-border);
-            border-radius: 14px;
-            padding:       1.1rem;
-            transition:    box-shadow 0.15s;
-        }
-        .order-card:hover {
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-        }
-        .order-card-header {
-            display:         flex;
-            justify-content: space-between;
-            align-items:     center;
-            margin-bottom:   0.65rem;
-        }
-        .order-number {
-            font-weight: 700;
-            font-size:   0.9rem;
-            color:       var(--cc-navy);
-        }
-        .order-customer {
-            font-size:   0.78rem;
-            color:       var(--cc-muted);
-            margin-top:  2px;
-        }
-        .order-items-list {
-            font-size:    0.82rem;
-            color:        var(--cc-text);
-            margin:       0.5rem 0;
-            padding-left: 0;
-            list-style:   none;
-        }
-        .order-items-list li {
-            padding:       3px 0;
-            border-bottom: 1px solid var(--cc-border);
-            display:       flex;
-            justify-content: space-between;
-        }
-        .order-items-list li:last-child {
-            border-bottom: none;
-        }
-        .order-total {
-            font-weight:  700;
-            font-size:    0.9rem;
-            color:        var(--cc-navy);
-            text-align:   right;
-            margin-top:   0.5rem;
-        }
-        /* ── Status badge colours ────────────────── */
-        .status-pending   { background: #fff3cd; color: #856404; }
-        .status-confirmed { background: #cfe2ff; color: #084298; }
-        .status-preparing { background: #d1ecf1; color: #0c5460; }
-        .status-ready     { background: #d4edda; color: #155724; }
-        .status-collected { background: #e2e3e5; color: #383d41; }
-        .status-badge {
-            font-size:     0.72rem;
-            font-weight:   600;
-            padding:       0.25rem 0.65rem;
-            border-radius: 20px;
-            display:       inline-block;
-        }
-        /* ── Status update buttons ───────────────── */
-        .status-actions {
-            display:    flex;
-            gap:        6px;
-            margin-top: 0.75rem;
-            flex-wrap:  wrap;
-        }
-        .btn-status {
-            padding:       0.3rem 0.75rem;
-            border:        none;
-            border-radius: 50px;
-            font-size:     0.78rem;
-            font-weight:   600;
-            cursor:        pointer;
-            transition:    all 0.15s;
-        }
-        .btn-preparing {
-            background: #d1ecf1;
-            color:      #0c5460;
-        }
-        .btn-preparing:hover {
-            background: #0c5460;
-            color:      #fff;
-        }
-        .btn-ready {
-            background: #d4edda;
-            color:      #155724;
-        }
-        .btn-ready:hover {
-            background: #155724;
-            color:      #fff;
-        }
-        .btn-collected {
-            background: #e2e3e5;
-            color:      #383d41;
-        }
-        .btn-collected:hover {
-            background: #383d41;
-            color:      #fff;
-        }
-        /* ── Loading / empty ─────────────────────── */
-        .loading-state {
-            display:         flex;
-            flex-direction:  column;
-            align-items:     center;
-            padding:         4rem;
-            color:           var(--cc-muted);
-        }
-        .no-orders {
-            text-align: center;
-            padding:    4rem;
-            color:      var(--cc-muted);
-        }
-        .no-orders i {
-            font-size:     3rem;
-            margin-bottom: 1rem;
-            display:       block;
-        }
-        /* ── Refresh button ──────────────────────── */
-        .btn-refresh {
-            display:      flex;
-            align-items:  center;
-            gap:          6px;
-            padding:      0.45rem 1rem;
-            background:   rgba(255,255,255,0.15);
-            border:       1px solid rgba(255,255,255,0.3);
-            border-radius: 50px;
-            color:        #fff;
-            font-size:    0.82rem;
-            font-weight:  600;
-            cursor:       pointer;
-            transition:   all 0.15s;
-        }
-        .btn-refresh:hover {
-            background: rgba(255,255,255,0.25);
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/staff.css}">
+    <title th:text="${pageTitle}">Staff Dashboard</title>
 </head>
 <body>
 <th:block th:replace="~{base :: layout(~{::content})}">
     <th:block th:fragment="content">
-
-        <div class="container-fluid px-4">
-
-            <!-- ── Page header ──────────────────── -->
-            <div class="dashboard-header">
+        <section class="staff-page">
+            <header class="staff-page-header dashboard-header">
                 <div>
-                    <h1 class="dashboard-title">Order Dashboard</h1>
-                    <p class="dashboard-subtitle">
-                        Live orders grouped by pickup time slot
+                    <span class="staff-eyebrow">Cafeteria operations</span>
+                    <h1>Good service starts here.</h1>
+                    <p>Your live view of today’s orders, kitchen workload, and menu availability.</p>
+                </div>
+                <div class="staff-header-actions">
+                    <span id="statsUpdated" class="staff-updated" aria-live="polite"></span>
+                    <button class="staff-button staff-button-secondary" id="refreshStats" type="button">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                    <a class="staff-button staff-button-primary" th:href="@{/staff/orders}">
+                        <i class="bi bi-receipt"></i> Manage orders
+                    </a>
+                </div>
+            </header>
+
+            <p id="statsError" class="staff-error d-none" role="alert">
+                Unable to refresh dashboard data. Try again in a moment.
+            </p>
+
+            <section class="dashboard-metrics" aria-label="Business overview">
+                <article class="dashboard-metric dashboard-metric-highlight">
+                    <span class="dashboard-metric-icon"><i class="bi bi-bag-check"></i></span>
+                    <span class="dashboard-metric-label">Orders today</span>
+                    <strong id="statToday" class="dashboard-metric-value" aria-live="polite">—</strong>
+                    <span class="dashboard-metric-note">Excludes cancelled orders</span>
+                </article>
+                <article class="dashboard-metric">
+                    <span class="dashboard-metric-icon"><i class="bi bi-hourglass-split"></i></span>
+                    <span class="dashboard-metric-label">Needs preparation</span>
+                    <strong id="statPending" class="dashboard-metric-value" aria-live="polite">—</strong>
+                    <span class="dashboard-metric-note">Pending orders</span>
+                </article>
+                <article class="dashboard-metric">
+                    <span class="dashboard-metric-icon"><i class="bi bi-fire"></i></span>
+                    <span class="dashboard-metric-label">In the kitchen</span>
+                    <strong id="statPrepared" class="dashboard-metric-value" aria-live="polite">—</strong>
+                    <span class="dashboard-metric-note">Being prepared</span>
+                </article>
+                <article class="dashboard-metric">
+                    <span class="dashboard-metric-icon"><i class="bi bi-bell"></i></span>
+                    <span class="dashboard-metric-label">Ready for pickup</span>
+                    <strong id="statReady" class="dashboard-metric-value" aria-live="polite">—</strong>
+                    <span class="dashboard-metric-note">Awaiting collection</span>
+                </article>
+                <article class="dashboard-metric">
+                    <span class="dashboard-metric-icon"><i class="bi bi-currency-exchange"></i></span>
+                    <span class="dashboard-metric-label">Collected sales</span>
+                    <strong id="statRevenue" class="dashboard-metric-value dashboard-metric-currency" aria-live="polite">—</strong>
+                    <span id="statAverageOrder" class="dashboard-metric-note">Average collected order —</span>
+                </article>
+                <article class="dashboard-metric">
+                    <span class="dashboard-metric-icon"><i class="bi bi-grid"></i></span>
+                    <span class="dashboard-metric-label">Menu availability</span>
+                    <strong id="statAvailability" class="dashboard-metric-value" aria-live="polite">—</strong>
+                    <span id="statMenuNote" class="dashboard-metric-note">Available items</span>
+                </article>
+            </section>
+
+            <div class="dashboard-content-grid">
+                <section class="dashboard-panel" aria-labelledby="order-flow-title">
+                    <div class="dashboard-panel-heading">
+                        <div>
+                            <span class="staff-eyebrow">Live workload</span>
+                            <h2 id="order-flow-title">Order flow</h2>
+                        </div>
+                        <a class="dashboard-panel-link" th:href="@{/staff/orders}">
+                            All orders <i class="bi bi-arrow-up-right"></i>
+                        </a>
+                    </div>
+                    <div id="orderFlow" class="order-flow">
+                        <p class="dashboard-loading">Loading order status…</p>
+                    </div>
+                    <p class="dashboard-panel-footnote">
+                        <i class="bi bi-info-circle"></i>
+                        Cancelled orders are excluded from the active order flow.
                     </p>
-                </div>
-                <button class="btn-refresh"
-                        onclick="loadDashboard()"
-                        style="background:var(--cc-navy);
-                       border-color:var(--cc-border);
-                       color:#fff">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    Refresh
-                </button>
+                </section>
+
+                <section class="dashboard-panel" aria-labelledby="recent-orders-title">
+                    <div class="dashboard-panel-heading">
+                        <div>
+                            <span class="staff-eyebrow">Latest activity</span>
+                            <h2 id="recent-orders-title">Recent orders</h2>
+                        </div>
+                        <span id="statTotal" class="dashboard-total-badge">— total</span>
+                    </div>
+                    <div id="recentOrders" class="recent-orders">
+                        <p class="dashboard-loading">Loading recent orders…</p>
+                    </div>
+                </section>
             </div>
-
-            <!-- ── Stats bar ────────────────────── -->
-            <div class="stats-bar">
-                <div class="stat-card">
-                    <div class="stat-number"
-                         id="statTotal">—</div>
-                    <div class="stat-label">Total Orders</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number"
-                         id="statPending">—</div>
-                    <div class="stat-label">Pending</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number"
-                         id="statPreparing">—</div>
-                    <div class="stat-label">Preparing</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number"
-                         id="statReady">—</div>
-                    <div class="stat-label">Ready</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number"
-                         id="statCollected">—</div>
-                    <div class="stat-label">Collected</div>
-                </div>
-            </div>
-
-
-
-            <!--What Zee added-->
-            <!--Filter bar-->
-            <div class="filter-bar">
-                <div class="filter-search">
-                    <i class="bi bi-search"></i>
-                    <input type="text" id="filterSearch" placeholder="Search order/customer" oninput="applyFilters()">
-                </div>
-
-                <select class="filter-select" id="filterStatus" onchange="applyFilters()">
-                    <option value="active">Active orders</option>
-                    <option value="all">All statuses</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Confirmed">Confirmed</option>
-                    <option value="Preparing">Preparing</option>
-                    <option value="Ready">Ready</option>
-                    <option value="Collected">Collected</option>   <!-- fixed closing tag -->
-                </select>
-
-                <select class="filter-select" id="filterSlot" onchange="applyFilters()">  <!-- fixed onchange -->
-                    <option value="all">All time slots</option>
-                </select>
-
-                <button class="filter-clear" onclick="clearFilters()">   <!-- added space -->
-                    <i class="bi bi-x-lg me-1"></i>Clear
-                </button>
-
-                <span class="filter-count" id="filterCount"></span>
-            </div>
-
-
-
-            <!-- ── Dashboard content ────────────── -->
-            <div id="dashLoading" class="loading-state">
-                <div class="spinner-border text-primary"
-                     role="status"></div>
-                <p class="mt-2">Loading orders...</p>
-            </div>
-
-            <div id="dashContent" style="display:none"></div>
-
-            <div id="dashEmpty" class="no-orders"
-                 style="display:none">
-                <i class="bi bi-inbox"></i>
-                <h4>No orders yet</h4>
-                <p>Orders will appear here as customers place them.</p>
-            </div>
-
-        </div>
-
-        <!-- ── Toast ────────────────────────────── -->
-        <div class="toast-container position-fixed
-            bottom-0 end-0 p-3">
-            <div id="dashToast"
-                 class="toast align-items-center border-0"
-                 role="alert">
-                <div class="d-flex">
-                    <div class="toast-body"
-                         id="dashToastMsg"></div>
-                    <button type="button"
-                            class="btn-close btn-close-white
-                           me-2 m-auto"
-                            data-bs-dismiss="toast"></button>
-                </div>
-            </div>
-        </div>
-
+        </section>
     </th:block>
 </th:block>
-
 <script>
+    const currency = value => new Intl.NumberFormat('en-ZA', {
+        style: 'currency',
+        currency: 'ZAR',
+        maximumFractionDigits: 2
+    }).format(Number(value) || 0);
+    const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[character]));
+    const canonicalStatus = status => ({ Confirmed: 'Pending', Preparing: 'Prepared' }[status] || status);
+    const statusClass = status => `staff-status-${canonicalStatus(status).toLowerCase()}`;
+    const statuses = [
+        ['Pending', 'pending'],
+        ['Prepared / in kitchen', 'prepared'],
+        ['Ready for pickup', 'ready'],
+        ['Collected', 'collected']
+    ];
+    let statsRequestPending = false;
 
-    // <!--What Zee added-->
-    // <!--Adding for the filter-->
-
-    function populateSlotFilter(slots) {
-        const sel = document.getElementById('filterSlot');
-        const prevValue = sel.value;
-        sel.innerHTML = '<option value="all">All time slots</option>';
-        slots.forEach(slot => {
-            const option = document.createElement('option');
-            option.value = slot.timeSlotId;      // Fixed: 'option' instead of 'opt'
-            option.textContent = slot.slotTime;  // Fixed: 'option' instead of 'opt'
-            sel.appendChild(option);
-        });
-        // Optional: restore previous value if it exists in the new list
-        if (prevValue) sel.value = prevValue;
+    function renderOrderFlow(stats) {
+        const activeTotal = statuses.reduce((total, [, key]) => total + Number(stats[key] || 0), 0);
+        document.querySelector('#orderFlow').innerHTML = statuses.map(([label, key]) => {
+            const count = Number(stats[key] || 0);
+            const percent = activeTotal ? Math.round(count / activeTotal * 100) : 0;
+            return `<div class="order-flow-row">
+                <div class="order-flow-label"><span>${label}</span><strong>${count}</strong></div>
+                <div class="order-flow-track" role="progressbar" aria-label="${label}" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100">
+                    <span class="order-flow-fill order-flow-${key}" style="width:${percent}%"></span>
+                </div>
+            </div>`;
+        }).join('');
     }
 
-    function applyFilters() {
-        if (!allOrders.length) {
-            // Update count even if no orders
-            document.getElementById('filterCount').textContent = 'Showing 0 of 0 orders';
+    function renderRecentOrders(orders) {
+        const target = document.querySelector('#recentOrders');
+        if (!orders.length) {
+            target.innerHTML = '<div class="dashboard-empty"><i class="bi bi-inbox"></i><strong>No orders yet</strong><span>New customer orders will appear here.</span></div>';
             return;
         }
 
-        const searchTerm = document.getElementById('filterSearch').value.trim().toLowerCase();
-        const statusVal = document.getElementById('filterStatus').value; // FIXED: Correct dropdown
-        const slotVal = document.getElementById('filterSlot').value;     // FIXED: Added this variable
+        target.innerHTML = orders.map(order => {
+            const status = canonicalStatus(order.orderStatus);
+            const time = order.orderedAt
+                ? new Date(order.orderedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+                : 'Time unavailable';
+            return `<a class="recent-order" href="/staff/orders">
+                <span class="recent-order-mark"><i class="bi bi-receipt"></i></span>
+                <span class="recent-order-main">
+                    <strong>Order #${escapeHtml(order.orderId)}</strong>
+                    <span>${escapeHtml(order.customerName)} · ${escapeHtml(time)}</span>
+                </span>
+                <span class="recent-order-end">
+                    <span class="staff-status ${statusClass(status)}">${escapeHtml(status)}</span>
+                    <strong>${currency(order.totalAmount)}</strong>
+                </span>
+            </a>`;
+        }).join('');
+    }
 
-        const filtered = allOrders.filter(o => {
-            // Active filter excludes 'Collected'
-            if (statusVal === 'active' && o.orderStatus === 'Collected')
-                return false;
-
-            // Specific status filter
-            if (statusVal !== 'active' && statusVal !== 'all' && o.orderStatus !== statusVal)
-                return false;
-
-            // Time slot filter
-            if (slotVal !== 'all' && String(o.timeSlotId) !== slotVal)
-                return false;
-
-            // Search filter
-            if (searchTerm) {
-                const matches = String(o.orderId).includes(searchTerm) || String(o.userId).includes(searchTerm);
-                if (!matches)
-                    return false;
-            }
-            return true;
-        });
-        // FIXED: Use backticks for template literal
-        document.getElementById('filterCount').textContent = `Showing ${filtered.length} of ${allOrders.length} orders`;
-
-        const contentDiv = document.getElementById('dashContent');
-        const noResultsDiv = document.getElementById('dashNoResults');
-
-        if (filtered.length === 0) {
-            noResultsDiv.style.display = 'block'; // Show no results
-            contentDiv.style.display = 'block';
-            contentDiv.innerHTML = '';            // FIXED: correct casing 'innerHTML'
-        } else {
-            noResultsDiv.style.display = 'none';
-            contentDiv.style.display = 'block';
-            // Ensure the render function replaces content, not appends.
-            // If renderDashboard appends, you might want to clear it first:
-            // contentDiv.innerHTML = '';
-            renderDashboard(filtered, timeSlots);
+    async function loadStats() {
+        if (statsRequestPending) return;
+        statsRequestPending = true;
+        const errorMessage = document.querySelector('#statsError');
+        try {
+            const response = await fetch('/api/staff/dashboard/stats', {
+                credentials: 'same-origin',
+                cache: 'no-store'
+            });
+            if (!response.ok) throw new Error('Dashboard request failed.');
+            const stats = await response.json();
+            document.querySelector('#statToday').textContent = stats.today;
+            document.querySelector('#statPending').textContent = stats.pending;
+            document.querySelector('#statPrepared').textContent = stats.prepared;
+            document.querySelector('#statReady').textContent = stats.ready;
+            document.querySelector('#statRevenue').textContent = currency(stats.collectedRevenue);
+            document.querySelector('#statAverageOrder').textContent =
+                `Average collected order ${currency(stats.averageCollectedOrder)}`;
+            document.querySelector('#statAvailability').textContent =
+                `${stats.availableMenuItems} / ${stats.activeMenuItems}`;
+            document.querySelector('#statMenuNote').textContent =
+                `${stats.activeMenuItems} active menu items`;
+            document.querySelector('#statTotal').textContent = `${stats.total} total`;
+            document.querySelector('#statsUpdated').textContent =
+                `Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            renderOrderFlow(stats);
+            renderRecentOrders(stats.recentOrders || []);
+            errorMessage.classList.add('d-none');
+        } catch (error) {
+            errorMessage.classList.remove('d-none');
+        } finally {
+            statsRequestPending = false;
         }
     }
-    function clearFilters() {
-        document.getElementById('filterSearch').value = '';
-        document.getElementById('filterStatus').value = 'active';
-        document.getElementById('filterSlot').value = 'all';
-        applyFilters();
-    }
 
-
-
-
-
-
-
-
-// -----------------------------
-    // Status display config
-    const STATUS_CONFIG = {
-        'Pending':   {
-            cls: 'status-pending',
-            label: 'Pending',
-            next: ['Confirmed', 'Preparing']
-        },
-        'Confirmed': {
-            cls: 'status-confirmed',
-            label: 'Confirmed',
-            next: ['Preparing']
-        },
-        'Preparing': {
-            cls: 'status-preparing',
-            label: 'Preparing',
-            next: ['Ready']
-        },
-        'Ready':     {
-            cls: 'status-ready',
-            label: 'Ready ✓',
-            next: ['Collected']
-        },
-        'Collected': {
-            cls: 'status-collected',
-            label: 'Collected',
-            next: []
-        }
-    };
-
-    const BTN_CLASSES = {
-        'Confirmed': 'btn-status btn-preparing',
-        'Preparing': 'btn-status btn-preparing',
-        'Ready':     'btn-status btn-ready',
-        'Collected': 'btn-status btn-collected'
-    };
-
-    let allOrders  = [];
-    let timeSlots  = [];
-
-    document.addEventListener('DOMContentLoaded', () => {
-        loadDashboard();
-        // Auto-refresh every 30 seconds
-        setInterval(loadDashboard, 30000);
-    });
-
-    // ── READ — fetch all orders from DB ──────
-    // GET /api/staff/orders
-    // Retrieves all rows from customer_orders table
-    function loadDashboard() {
-        Promise.all([
-            fetch('/api/staff/orders',
-                { credentials: 'same-origin' })
-                .then(r => r.json()),
-            fetch('/api/time-slots',
-                { credentials: 'same-origin' })
-                .then(r => r.json())
-        ])
-            .then(([orders, slots]) => {
-                allOrders = orders;
-                timeSlots = slots;
-
-                document.getElementById('dashLoading')
-                    .style.display = 'none';
-
-                updateStats(orders);
-
-                // Filter out collected for main view
-                const activeOrders = orders.filter(
-                    o => o.orderStatus !== 'Collected');
-
-                if (activeOrders.length === 0 &&
-                    orders.length === 0) {
-                    document.getElementById('dashEmpty')
-                        .style.display = 'block';
-                    return;
-                }
-
-                renderDashboard(orders, slots);
-                document.getElementById('dashContent')
-                    .style.display = 'block';
-            })
-            .catch(err => {
-                console.error('Dashboard load error:', err);
-                showToast('Failed to load orders.', true);
-            });
-    }
-
-    function updateStats(orders) {
-        const counts = {
-            Pending: 0, Confirmed: 0,
-            Preparing: 0, Ready: 0, Collected: 0
-        };
-        orders.forEach(o => {
-            if (counts.hasOwnProperty(o.orderStatus)) {
-                counts[o.orderStatus]++;
-            }
-        });
-        document.getElementById('statTotal')
-            .textContent = orders.length;
-        document.getElementById('statPending')
-            .textContent = counts.Pending + counts.Confirmed;
-        document.getElementById('statPreparing')
-            .textContent = counts.Preparing;
-        document.getElementById('statReady')
-            .textContent = counts.Ready;
-        document.getElementById('statCollected')
-            .textContent = counts.Collected;
-    }
-
-    function renderDashboard(orders, slots) {
-        // Group orders by time slot
-        const grouped = {};
-        slots.forEach(slot => {
-            grouped[slot.timeSlotId] = {
-                slot:   slot,
-                orders: []
-            };
-        });
-
-        // Add unslotted group for safety
-        grouped['unassigned'] = {
-            slot:   { slotTime: 'Unassigned' },
-            orders: []
-        };
-
-        orders.forEach(order => {
-            const slotId = order.timeSlotId;
-            if (grouped[slotId]) {
-                grouped[slotId].orders.push(order);
-            } else {
-                grouped['unassigned'].orders.push(order);
-            }
-        });
-
-        let html = '';
-
-        Object.values(grouped).forEach(group => {
-            const slotOrders = group.orders;
-            // Skip empty slots
-            if (slotOrders.length === 0) return;
-
-            html += `
-        <div class="slot-section">
-            <div class="slot-header">
-                <i class="bi bi-clock"></i>
-                <span class="slot-time">
-                    Pickup: ${group.slot.slotTime}
-                </span>
-                <span class="slot-count">
-                    ${slotOrders.length} order${
-                slotOrders.length !== 1 ? 's' : ''}
-                </span>
-            </div>
-            <div class="orders-grid">
-                ${slotOrders.map(o =>
-                renderOrderCard(o)).join('')}
-            </div>
-        </div>`;
-        });
-
-        document.getElementById('dashContent')
-            .innerHTML = html || '<div class="no-orders">' +
-            '<i class="bi bi-inbox-fill"></i>' +
-            '<h4>All orders collected</h4></div>';
-    }
-
-    function renderOrderCard(order) {
-        const cfg = STATUS_CONFIG[order.orderStatus]
-            || STATUS_CONFIG['Pending'];
-
-        // Build next-status buttons
-        const btns = cfg.next.map(nextStatus => `
-        <button class="${BTN_CLASSES[nextStatus]
-        || 'btn-status'}"
-                onclick="updateOrderStatus(
-                    ${order.orderId},
-                    '${nextStatus}',
-                    this)">
-            <i class="bi bi-arrow-right-circle me-1"></i>
-            Mark ${nextStatus}
-        </button>`).join('');
-
-        return `
-    <div class="order-card" id="order-${order.orderId}">
-        <div class="order-card-header">
-            <div>
-                <div class="order-number">
-                    Order #${order.orderId}
-                </div>
-                <div class="order-customer">
-                    Customer ID: ${order.userId}
-                </div>
-            </div>
-            <span class="status-badge ${cfg.cls}"
-                  id="badge-${order.orderId}">
-                ${cfg.label}
-            </span>
-        </div>
-        <div class="order-total">
-            Total: R${parseFloat(order.totalAmount)
-            .toFixed(2)}
-        </div>
-        <div class="status-actions"
-             id="actions-${order.orderId}">
-            ${btns}
-        </div>
-    </div>`;
-    }
-
-    // ── UPDATE — change order status in DB ────
-    // PATCH /api/staff/orders/{id}/status
-    // Updates order_status column in customer_orders
-    // DATABASE OPERATION: UPDATE
-    function updateOrderStatus(orderId, newStatus, btn) {
-        btn.disabled    = true;
-        btn.textContent = 'Updating...';
-
-        fetch(`/api/staff/orders/${orderId}/status`, {
-            method:      'PATCH',
-            credentials: 'same-origin',
-            headers:     { 'Content-Type': 'application/json' },
-            body:        JSON.stringify({ status: newStatus })
-        })
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showToast(
-                        `Order #${orderId} marked as ${newStatus}.`);
-
-                    // Update badge without full reload
-                    const badge = document
-                        .getElementById(`badge-${orderId}`);
-                    const cfg   = STATUS_CONFIG[newStatus];
-                    if (badge && cfg) {
-                        badge.className =
-                            `status-badge ${cfg.cls}`;
-                        badge.textContent = cfg.label;
-                    }
-
-                    // Update action buttons
-                    const actions = document
-                        .getElementById(`actions-${orderId}`);
-                    if (actions && cfg) {
-                        actions.innerHTML = cfg.next.map(
-                            nextStatus => `
-                    <button class="${BTN_CLASSES[nextStatus]
-                            || 'btn-status'}"
-                            onclick="updateOrderStatus(
-                                ${orderId},
-                                '${nextStatus}',
-                                this)">
-                        <i class="bi bi-arrow-right-circle me-1"></i>
-                        Mark ${nextStatus}
-                    </button>`).join('');
-                    }
-
-                    // Update stats
-                    updateStats(allOrders.map(o =>
-                        o.orderId === orderId
-                            ? { ...o, orderStatus: newStatus }
-                            : o
-                    ));
-
-                } else {
-                    showToast(data.message, true);
-                    btn.disabled    = false;
-                    btn.textContent =
-                        'Mark ' + newStatus;
-                }
-            })
-            .catch(() => {
-                showToast('Update failed. Please try again.', true);
-                btn.disabled    = false;
-            });
-    }
-
-    function showToast(message, isError = false) {
-        const toast = document.getElementById('dashToast');
-        document.getElementById('dashToastMsg')
-            .textContent = message;
-        toast.style.background = isError
-            ? '#c0392b' : '#1F3864';
-        new bootstrap.Toast(toast, { delay: 3000 }).show();
-    }
+    document.querySelector('#refreshStats').addEventListener('click', loadStats);
+    window.refreshDashboardStats = loadStats;
+    loadStats();
+    window.setInterval(loadStats, 30000);
 </script>
 </body>
 </html>

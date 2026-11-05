@@ -136,17 +136,67 @@ public class OrderService {
                 .orElseThrow(() ->
                         new RuntimeException("Order not found with id: " + orderId));
 
+        String currentStatus = canonicalStatus(order.getOrderStatus());
+        boolean validTransition = switch (currentStatus) {
+            case "Pending" -> "Prepared".equals(status) || "Cancelled".equals(status);
+            case "Prepared" -> "Ready".equals(status) || "Cancelled".equals(status);
+            case "Ready" -> "Collected".equals(status) || "Cancelled".equals(status);
+            default -> false;
+        };
+        if (!validTransition) {
+            throw new IllegalStateException(
+                    "Cannot change order status from " + order.getOrderStatus() + " to " + status + ".");
+        }
+
         order.setOrderStatus(status);
         return customerOrderRepository.save(order);
     }
 
-    // New — uses the advanceStatus() method on CustomerOrder
+    @Transactional
+    public MenuItem markOrderItemOutOfStock(Long orderId, Long menuItemId) {
+        CustomerOrder order = customerOrderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+        if ("Collected".equals(canonicalStatus(order.getOrderStatus()))
+                || "Cancelled".equals(canonicalStatus(order.getOrderStatus()))) {
+            throw new IllegalStateException("Items on completed or cancelled orders cannot be changed.");
+        }
+
+        boolean belongsToOrder = orderItemRepository.findByOrderId(orderId).stream()
+                .anyMatch(item -> item.getMenuItemId().equals(menuItemId));
+        if (!belongsToOrder) {
+            throw new IllegalArgumentException("The selected item is not part of this order.");
+        }
+
+        MenuItem menuItem = menuItemRepository.findById(menuItemId)
+                .orElseThrow(() -> new RuntimeException("Menu item not found: " + menuItemId));
+        menuItem.setStatus("Sold Out");
+        return menuItemRepository.save(menuItem);
+    }
+
     public CustomerOrder advanceOrderStatus(Long orderId) {
         CustomerOrder order = customerOrderRepository.findById(orderId)
                 .orElseThrow(() ->
                         new RuntimeException("Order not found with id: " + orderId));
 
-        order.advanceStatus();
-        return customerOrderRepository.save(order);
+        String nextStatus = switch (canonicalStatus(order.getOrderStatus())) {
+            case "Pending" -> "Prepared";
+            case "Prepared" -> "Ready";
+            case "Ready" -> "Collected";
+            default -> throw new IllegalStateException(
+                    "Order status cannot advance from " + order.getOrderStatus() + ".");
+        };
+        return updateOrderStatus(orderId, nextStatus);
+    }
+
+    public List<CustomerOrder> getAllOrdersOldestFirst() {
+        return customerOrderRepository.findAllByOrderByOrderedAtAsc();
+    }
+
+    private String canonicalStatus(String status) {
+        return switch (status == null ? "" : status) {
+            case "Confirmed" -> "Pending";
+            case "Preparing" -> "Prepared";
+            default -> status;
+        };
     }
 }

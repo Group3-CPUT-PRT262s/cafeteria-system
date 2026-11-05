@@ -4,6 +4,8 @@
 <head>
     <th:block th:replace="~{base :: head}"></th:block>
     <title th:text="${pageTitle}">Edit Item</title>
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
     <style>
         .form-wrapper { max-width: 600px; }
         .form-card {
@@ -162,6 +164,17 @@
                         </select>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label" for="image">Item image</label>
+                        <div class="mb-2" th:if="${item.imageUrl != null}">
+                            <img th:src="${item.imageUrl}" alt="Current menu item"
+                                 style="width: 120px; height: 90px; object-fit: cover; border-radius: 10px;">
+                        </div>
+                        <input class="form-control" type="file" id="image"
+                               accept="image/png,image/jpeg,image/gif">
+                        <small class="text-muted">Optional. Choose a new JPEG, PNG, or GIF (up to 5 MB) to replace it.</small>
+                    </div>
+
                     <div class="form-actions">
                         <button class="btn-save"
                                 onclick="updateItem()">
@@ -181,7 +194,7 @@
 
 <script>
     // UPDATE — edit existing menu item
-    // PUT /api/staff/menu/{id}
+    // POST /api/staff/menu/{id}
     // DATABASE OPERATION: UPDATE (full)
     // Updates all editable fields in menu_items table
     function updateItem() {
@@ -195,6 +208,8 @@
         const categoryId = document.getElementById('categoryId')
             .value;
         const status     = document.getElementById('status').value;
+        const csrfToken  = document.querySelector('meta[name="_csrf"]').content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
         if (!itemName) {
             showError('Item name is required.');
@@ -209,18 +224,20 @@
         btn.disabled    = true;
         btn.textContent = 'Saving...';
 
-        // UPDATE — PUT updates all fields in menu_items
+        const formData = new FormData();
+        formData.append('itemName', itemName);
+        formData.append('description', description);
+        formData.append('price', price);
+        formData.append('categoryId', categoryId);
+        formData.append('status', status);
+        const image = document.getElementById('image').files[0];
+        if (image) formData.append('image', image);
+
         fetch(`/api/staff/menu/${itemId}`, {
-            method:      'PUT',
-            credentials: 'same-origin',editing,item,
-            headers:     { 'Content-Type': 'application/json' },
-            body:        JSON.stringify({
-                itemName:    itemName,
-                description: description,
-                price:       parseFloat(price),
-                categoryId:  parseInt(categoryId),
-                status:      status
-            })
+            method:      'POST',
+            credentials: 'same-origin',
+            headers:     { [csrfHeader]: csrfToken },
+            body:        formData
         })
             .then(r => r.json())
             .then(data => {

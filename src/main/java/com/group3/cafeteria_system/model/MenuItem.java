@@ -30,6 +30,9 @@ public class MenuItem {
 
     private String description;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(nullable = false)
     private Double price;
 
@@ -70,6 +73,7 @@ public class MenuItem {
     public Long getCategoryId() { return categoryId; }
     public String getItemName() { return itemName; }
     public String getDescription() { return description; }
+    public String getImageUrl() { return imageUrl; }
     public Double getPrice() { return price; }
     public String getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
@@ -80,6 +84,7 @@ public class MenuItem {
     public void setCategoryId(Long categoryId) {this.categoryId = categoryId;}
     public void setItemName(String itemName) {this.itemName = itemName;}
     public void setDescription(String description) {this.description = description;}
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public void setPrice(Double price) { this.price = price; }
     public void setStatus(String status) { this.status = status; }
     public void setIsActive(Boolean isActive) {this.isActive = isActive;}

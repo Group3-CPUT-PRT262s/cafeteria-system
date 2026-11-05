@@ -11,4 +11,6 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
     // Find only active time slots for the order form dropdown (to be implemented)
     List<TimeSlot> findByIsActiveTrue();
 
+    boolean existsBySlotTime(String slotTime);
+
 }

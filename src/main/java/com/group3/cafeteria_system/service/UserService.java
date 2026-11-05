@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.group3.cafeteria_system.model.PasswordResetToken;
 import com.group3.cafeteria_system.model.User;
@@ -68,11 +69,14 @@ public class UserService implements UserDetailsService {
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPasswordHash(),
+                "ACTIVE".equals(user.getAccountStatus()),
+                true,
+                true,
+                true,
                 Collections.singletonList(
                         new SimpleGrantedAuthority(
                                 "ROLE_" + user.getRole()
-                        )
-                )
+                        ))
         );
     }
 
@@ -85,6 +89,10 @@ public class UserService implements UserDetailsService {
         return userRepository.findByUsername(
                 normalizeUsername(username)
         );
+    }
+
+    public Optional<User> findById(Long userId) {
+        return userRepository.findById(userId);
     }
 
     /*
@@ -246,6 +254,11 @@ public class UserService implements UserDetailsService {
 
     public User updateProfile(String username, String firstName,
                               String lastName, String email) {
+        return updateProfile(username, firstName, lastName, email, null);
+    }
+
+    public User updateProfile(String username, String firstName,
+                              String lastName, String email, String profilePictureUrl) {
         User user = findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found."));
 
@@ -263,6 +276,9 @@ public class UserService implements UserDetailsService {
         user.setFirstName(firstName == null ? "" : firstName.trim());
         user.setLastName(lastName == null ? "" : lastName.trim());
         user.setEmail(normalizedEmail);
+        if (profilePictureUrl != null) {
+            user.setProfilePictureUrl(profilePictureUrl);
+        }
         return userRepository.save(user);
     }
 
@@ -386,11 +402,64 @@ public class UserService implements UserDetailsService {
         return userRepository.findAll();
     }
 
-    public void updateUserRole(Long userId, String role) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException(
-                        "User not found."));
-        user.setRole(role);
+    @Transactional
+    public void updateUserRole(Long requesterId, Long userId, String role) {
+        String normalizedRole = role == null ? "" : role.trim().toUpperCase();
+        if (!List.of("STUDENT", "STAFF", "ADMIN").contains(normalizedRole)) {
+            throw new IllegalArgumentException("Role must be STUDENT, STAFF, or ADMIN.");
+        }
+        userRepository.lockActiveAdmins();
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+        if (requesterId.equals(userId) && !"ADMIN".equals(normalizedRole)) {
+            throw new IllegalStateException("You cannot remove your own administrator access.");
+        }
+        if ("ADMIN".equals(user.getRole()) && !"ADMIN".equals(normalizedRole)
+                && isLastActiveAdmin(user)) {
+            throw new IllegalStateException("The last active administrator cannot be demoted.");
+        }
+        user.setRole(normalizedRole);
         userRepository.save(user);
+    }
+
+    @Transactional
+    public void updateAccountStatus(Long requesterId, Long userId, String status) {
+        String normalizedStatus = status == null ? "" : status.trim().toUpperCase();
+        if (!List.of("ACTIVE", "INACTIVE", "SUSPENDED").contains(normalizedStatus)) {
+            throw new IllegalArgumentException("Status must be ACTIVE, INACTIVE, or SUSPENDED.");
+        }
+        userRepository.lockActiveAdmins();
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+        if (requesterId.equals(userId) && !"ACTIVE".equals(normalizedStatus)) {
+            throw new IllegalStateException("You cannot deactivate or suspend your own account.");
+        }
+        if ("ADMIN".equals(user.getRole())
+                && "ACTIVE".equals(user.getAccountStatus())
+                && !"ACTIVE".equals(normalizedStatus)
+                && isLastActiveAdmin(user)) {
+            throw new IllegalStateException("The last active administrator cannot be deactivated.");
+        }
+        user.setAccountStatus(normalizedStatus);
+        userRepository.save(user);
+    }
+
+    private boolean isLastActiveAdmin(User target) {
+        long activeAdmins = userRepository.countByRoleAndAccountStatus("ADMIN", "ACTIVE")
+                + userRepository.countByRoleAndAccountStatusIsNull("ADMIN");
+        return "ACTIVE".equals(target.getAccountStatus()) && activeAdmins <= 1;
+    }
+
+    @Transactional
+    public void deleteAccount(Long userId) {
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User account not found."));
+        if (user.isAdmin()) {
+            throw new IllegalStateException(
+                    "Administrator accounts cannot be deleted from the profile page.");
+        }
+
+        tokenRepository.deleteByUserId(userId);
+        userRepository.delete(user);
     }
 }

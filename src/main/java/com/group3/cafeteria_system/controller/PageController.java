@@ -42,11 +42,6 @@ public class PageController {
         this.userService = userService;
     }
 
-    @GetMapping("/")
-    public String root() {
-        return "redirect:/menu";
-    }
-
     // ── Customer menu page ────────────────────
     // GET /menu
     // Renders the customer-facing menu page.

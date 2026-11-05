@@ -14,25 +14,26 @@ public class CheckoutService {
 
     private final OrderService orderService;
     private final PaymentService paymentService;
+    private final WalletService walletService;
 
     public CheckoutService(OrderService orderService,
-                           PaymentService paymentService) {
+                           PaymentService paymentService,
+                           WalletService walletService) {
         this.orderService = orderService;
         this.paymentService = paymentService;
+        this.walletService = walletService;
     }
 
     @Transactional
     public CustomerOrder checkout(Long userId, Long timeSlotId,
-                                  Map<Long, Integer> cart,
-                                  String paymentMethod) {
+                                  Map<Long, Integer> cart) {
         CustomerOrder order = orderService.placeOrder(userId, timeSlotId, cart);
+        walletService.debit(userId, order.getTotalAmount());
 
-        // This records the selected method for the current demo flow. It does
-        // not charge a card or contact a payment provider.
         Payment payment = paymentService.createPayment(
-                order.getOrderId(), order.getTotalAmount(), paymentMethod);
+                order.getOrderId(), order.getTotalAmount(), "WALLET");
         paymentService.confirmPayment(
-                order.getOrderId(), "DEMO-" + payment.getPaymentId());
+                order.getOrderId(), "WALLET-DEMO-" + payment.getPaymentId());
 
         return order;
     }

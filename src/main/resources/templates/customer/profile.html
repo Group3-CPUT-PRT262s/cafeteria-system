@@ -1,1 +1,196 @@
-<!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org"><head><th:block th:replace="~{base :: head}"></th:block><link rel="stylesheet" th:href="@{/css/customer.css}"><title th:text="${pageTitle}">My Profile</title></head><body><th:block th:replace="~{base :: layout(~{::content})}"><th:block th:fragment="content"><section class="customer-page"><div class="customer-kicker text-dark">Account</div><h1>My profile</h1><div class="customer-card" style="max-width:680px"><form th:action="@{/profile}" method="post"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><div class="row g-3"><div class="col-md-6"><label class="form-label">First name</label><input class="form-control" name="firstName" th:value="${user.firstName}"></div><div class="col-md-6"><label class="form-label">Last name</label><input class="form-control" name="lastName" th:value="${user.lastName}"></div><div class="col-12"><label class="form-label">Email</label><input class="form-control" type="email" name="email" required th:value="${user.email}"></div><div class="col-12"><label class="form-label">Username</label><input class="form-control" disabled th:value="${user.username}"><div class="form-text">Your username and role are managed separately.</div></div></div><button class="btn btn-success mt-4">Save changes</button></form></div></section></th:block></th:block></body></html>
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{base :: head}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/customer.css}">
+    <title th:text="${pageTitle}">My Profile</title>
+</head>
+<body>
+<th:block th:replace="~{base :: layout(~{::content})}">
+    <th:block th:fragment="content">
+        <section class="customer-page profile-page">
+            <header class="profile-hero">
+                <div class="profile-hero-copy">
+                    <span class="profile-section-kicker">Your account</span>
+                    <h1>Good to see you, <span th:text="${user.firstName != null and !user.firstName.isBlank() ? user.firstName : user.username}">there</span>.</h1>
+                    <p>Keep your details up to date and your next cafeteria visit ready to go.</p>
+                    <span class="profile-role-pill">
+                        <i class="bi bi-person-badge"></i>
+                        <span th:text="${user.role}">STUDENT</span>
+                    </span>
+                </div>
+                <img class="profile-hero-art" th:if="${user.profilePictureUrl != null}"
+                     th:src="${user.profilePictureUrl}" th:alt="${user.displayName + ' profile picture'}">
+                <img class="profile-hero-art" th:unless="${user.profilePictureUrl != null}"
+                     th:src="@{/images/ChickenWrap.jpg}" alt="Illustration celebrating fresh cafeteria food">
+                <div class="profile-hero-orb profile-hero-orb-one"></div>
+                <div class="profile-hero-orb profile-hero-orb-two"></div>
+            </header>
+
+            <div class="alert alert-success" role="status" th:if="${successMessage}"
+                 th:text="${successMessage}"></div>
+            <div class="alert alert-danger" role="alert" th:if="${errorMessage}"
+                 th:text="${errorMessage}"></div>
+
+            <div class="profile-layout">
+                <div class="profile-main-column">
+                    <section class="customer-card profile-card">
+                        <div class="profile-card-heading">
+                            <div>
+                                <span class="profile-section-kicker">Personal details</span>
+                                <h2>Your information</h2>
+                            </div>
+                            <span class="profile-heading-icon"><i class="bi bi-person-lines-fill"></i></span>
+                        </div>
+                        <form th:action="@{/profile}" method="post" enctype="multipart/form-data"
+                              class="profile-edit-form">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <div class="profile-form-grid">
+                                <label class="profile-form-field">
+                                    <span>Username</span>
+                                    <input class="form-control" type="text" th:value="${user.username}" readonly>
+                                    <small>Your username cannot be changed.</small>
+                                </label>
+                                <label class="profile-form-field">
+                                    <span>First name</span>
+                                    <input class="form-control" name="firstName" autocomplete="given-name"
+                                           th:value="${user.firstName}" required>
+                                </label>
+                                <label class="profile-form-field">
+                                    <span>Surname</span>
+                                    <input class="form-control" name="lastName" autocomplete="family-name"
+                                           th:value="${user.lastName}" required>
+                                </label>
+                                <label class="profile-form-field profile-form-field-wide">
+                                    <span>Email address</span>
+                                    <input class="form-control" type="email" name="email" autocomplete="email"
+                                           th:value="${user.email}" required>
+                                </label>
+                                <label class="profile-form-field profile-form-field-wide">
+                                    <span>Profile picture</span>
+                                    <input class="form-control" type="file" name="profilePicture"
+                                           accept="image/png,image/jpeg,image/gif">
+                                    <small>Optional. JPEG, PNG, or GIF, up to 5 MB.</small>
+                                </label>
+                            </div>
+                            <button class="btn btn-success profile-save-button" type="submit">
+                                <i class="bi bi-check2-circle me-1"></i> Save changes
+                            </button>
+                        </form>
+                    </section>
+
+                    <section class="customer-card profile-card">
+                        <div class="profile-card-heading">
+                            <div>
+                                <span class="profile-section-kicker"
+                                      th:text="${staffProfile ? 'Cafeteria activity' : 'Your activity'}">Your activity</span>
+                                <h2 th:text="${staffProfile ? 'Recent restaurant orders' : 'Recent order history'}">Recent order history</h2>
+                            </div>
+                            <a class="profile-text-link" th:href="${orderHistoryUrl}">
+                                <span th:text="${staffProfile ? 'Manage orders' : 'Full history'}">Full history</span>
+                                <i class="bi bi-arrow-up-right"></i>
+                            </a>
+                        </div>
+
+                        <div class="profile-order-list" th:if="${!#lists.isEmpty(orders)}">
+                            <article class="profile-order-row" th:each="order : ${orders}">
+                                <span class="profile-order-icon"><i class="bi bi-receipt"></i></span>
+                                <div class="profile-order-copy">
+                                    <strong th:text="'Order #' + ${order.orderId}">Order #1</strong>
+                                    <span th:text="${#temporals.format(order.orderedAt, 'dd MMM yyyy · HH:mm')}">Date</span>
+                                </div>
+                                <div class="profile-order-result">
+                                    <span class="profile-order-status"
+                                          th:classappend="${#strings.toLowerCase(order.orderStatus)}"
+                                          th:text="${order.orderStatus}">Pending</span>
+                                    <strong th:text="'R' + ${#numbers.formatDecimal(order.totalAmount, 1, 'COMMA', 2, 'POINT')}">R0.00</strong>
+                                </div>
+                                <a class="profile-order-open"
+                                   th:if="${!staffProfile}"
+                                   th:href="@{/orders/{id}(id=${order.orderId})}"
+                                   th:attr="aria-label=${'View order ' + order.orderId}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </article>
+                        </div>
+                        <div class="profile-empty-state" th:if="${#lists.isEmpty(orders)}">
+                            <span class="profile-empty-art"><i class="bi bi-bag-heart"></i></span>
+                            <strong th:text="${staffProfile ? 'No restaurant orders yet' : 'Your next favourite is waiting'}">Your next favourite is waiting</strong>
+                            <span th:text="${staffProfile ? 'New customer orders will show here.' : 'Your completed and current orders will appear here.'}">Your orders will appear here.</span>
+                            <a th:if="${!staffProfile}" class="btn btn-success btn-sm mt-2" th:href="@{/menu}">Explore the menu</a>
+                            <a th:if="${staffProfile}" class="btn btn-success btn-sm mt-2" th:href="@{/staff/orders}">Open order queue</a>
+                        </div>
+                    </section>
+                </div>
+
+                <aside class="profile-side-column">
+                    <section class="profile-wallet-card">
+                        <div class="profile-wallet-top">
+                            <span class="profile-wallet-icon"><i class="bi bi-wallet2"></i></span>
+                            <span class="profile-wallet-tag">DEMO WALLET</span>
+                        </div>
+                        <span class="profile-wallet-label">Available credits</span>
+                        <strong class="profile-wallet-balance"
+                                th:text="'R' + ${#numbers.formatDecimal(walletBalance, 1, 'COMMA', 2, 'POINT')}">R500.00</strong>
+                        <p>Use your wallet at checkout. These demo credits have no cash value.</p>
+                        <div class="profile-wallet-actions">
+                            <form th:each="amount : ${walletTopUpAmounts}"
+                                  th:action="@{/profile/wallet/top-up}" method="post">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <input type="hidden" name="amount" th:value="${amount}">
+                                <button type="submit">
+                                    <i class="bi bi-plus-lg"></i>
+                                    <span th:text="'R' + ${#numbers.formatDecimal(amount, 1, 'COMMA', 0, 'POINT')}">R100</span>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="profile-wallet-sparkle profile-wallet-sparkle-one"></div>
+                        <div class="profile-wallet-sparkle profile-wallet-sparkle-two"></div>
+                    </section>
+
+                    <section class="customer-card profile-account-card">
+                        <span class="profile-section-kicker">Account access</span>
+                        <h2>Manage account</h2>
+                        <form th:action="@{/logout}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <button class="profile-account-action" type="submit">
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span>Log out</span>
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </form>
+                        <button class="profile-account-action profile-delete-action" type="button"
+                                data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                            <i class="bi bi-person-x"></i>
+                            <span>Delete account</span>
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <p class="profile-delete-note">Deleting your account signs you out and cannot be undone.</p>
+                    </section>
+                </aside>
+            </div>
+        </section>
+
+        <div class="modal fade" id="deleteAccountModal" tabindex="-1"
+             aria-labelledby="deleteAccountTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content profile-delete-modal">
+                    <div class="modal-body">
+                        <span class="profile-delete-modal-icon"><i class="bi bi-exclamation-triangle"></i></span>
+                        <h2 id="deleteAccountTitle">Delete your account?</h2>
+                        <p>Your profile and wallet access will be removed. Existing restaurant order records are retained for operational history.</p>
+                        <div class="profile-delete-modal-actions">
+                            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Keep my account</button>
+                            <form th:action="@{/profile/delete-account}" method="post">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button class="btn btn-danger" type="submit">Delete account</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</th:block>
+</body>
+</html>
