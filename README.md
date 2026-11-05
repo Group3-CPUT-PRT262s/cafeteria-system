@@ -1,6 +1,6 @@
-# Campus Cafeteria Management System
+## Digital Campus Cafeteria Management System
 
-Digital Campus Cafeteria Management System — PRT262S Group 3.
+A group project developed by Diploma in ICT: Applications Development students at the [Cape Peninsula University of Technology (CPUT)](https://www.cput.ac.za/).
 
 This Spring Boot application supports advance cafeteria ordering by students and
 provides staff and administrators with web tools for fulfilment and cafeteria
