@@ -1,26 +1,144 @@
 <!DOCTYPE html>
-<html lang="en"
-      xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <th:block th:replace="~{base :: head}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/customer.css}">
     <title th:text="${pageTitle}">Menu</title>
-    <!-- page styles go here -->
-    <style>
-        /* ... your existing menu styles ... */
-    </style>
 </head>
+
 <body>
-<th:block th:replace="~{base :: layout(~{::content})}">
-    <th:block th:fragment="content">
+    <th:block th:replace="~{base :: layout(~{::content})}">
+        <th:block th:fragment="content">
+            <section class="customer-hero customer-hero-full">
+                <video class="customer-hero-video" autoplay muted loop playsinline aria-hidden="true">
+                    <source th:src="@{/videos/hero-vid.mp4}" type="video/mp4">
+                </video>
+                <div class="customer-hero-overlay"></div>
+                <div class="customer-hero-content">
+                    <div class="customer-kicker">Campus Cafeteria</div>
+                    <h1>Good food, ready when your class is.</h1>
+                    <p>Browse live menu items, see current prices and availability, then collect your order at the time
+                        that works for you.</p>
+                </div>
+            </section>
+            <section class="customer-page">
+                <div class="menu-toolbar">
+                    <div>
+                        <div class="customer-kicker text-dark">Today's selection</div>
+                        <h2 class="mb-0">Fresh from the kitchen</h2>
+                    </div><input id="menuSearch" class="form-control" style="max-width:280px"
+                        placeholder="Search the menu">
+                </div>
+                <nav class="category-pills"><a class="category-pill"
+                        th:classappend="${activeCategoryId == null} ? ' active'" th:href="@{/menu}">All</a><a
+                        th:each="category : ${categories}" class="category-pill"
+                        th:classappend="${activeCategoryId == category.categoryId} ? ' active'"
+                        th:href="@{/menu(categoryId=${category.categoryId})}" th:text="${category.categoryName}"></a>
+                </nav>
+                <div class="menu-grid" id="menuGrid">
+                    <article class="food-card" th:each="item : ${items}"
+                        th:attr="data-search=${item.itemName + ' ' + item.description}">
+                        <div class="food-card-art">
+                            <button class="food-image-button" type="button" data-bs-toggle="modal"
+                                data-bs-target="#productModal" th:data-name="${item.itemName}"
+                                th:data-description="${item.description ?: 'A freshly prepared cafeteria favourite.'}"
+                                th:aria-label="'View details for ' + ${item.itemName}">
+                                <img th:src="${item.imageUrl != null ? item.imageUrl : '/images/ChickenWrap.jpg'}"
+                                    th:alt="${item.itemName}"
+                                    class="food-card-image">
+                                <span class="image-hint"><i class="bi bi-arrows-angle-expand"></i> View dish</span>
+                            </button>
+                            <span class="stock"
+                                th:classappend="${item.status == 'Low Stock'} ? ' low' : (${item.status == 'Sold Out'} ? ' sold' : '')"
+                                th:text="${item.status}"></span>
+                        </div>
+                        <div class="food-card-body">
+                            <div class="food-card-heading">
+                                <h3 th:text="${item.itemName}">Item</h3>
+                                <span class="price"
+                                    th:text="'R' + ${#numbers.formatDecimal(item.price,1,'COMMA',2,'POINT')}"></span>
+                            </div>
+                            <p class="food-description"
+                                th:text="${item.description ?: 'A freshly prepared cafeteria favourite.'}"></p>
+                            <button class="btn btn-cc-primary add-cart" th:data-id="${item.menuItemId}"
+                                th:disabled="${!item.available}"
+                                th:text="${item.available} ? 'Add to Cart' : 'Sold out'"></button>
+                        </div>
+                    </article>
+                </div>
+                <div id="noResults" class="empty-state d-none">No menu items match that search.</div>
 
-        <!-- ALL your existing menu page HTML goes here -->
-
+                <div class="modal fade product-modal" id="productModal" tabindex="-1"
+                    aria-labelledby="productModalTitle" aria-hidden="true" data-bs-backdrop="true"
+                    data-bs-keyboard="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content">
+                            <button type="button" class="product-modal-close" data-bs-dismiss="modal"
+                                aria-label="Close product details"><i class="bi bi-x-lg"></i></button>
+                            <div class="product-modal-layout">
+                                <img id="productModalImage" class="product-modal-image"
+                                    th:src="@{/images/ChickenWrap.jpg}" alt="">
+                                <div class="product-modal-copy">
+                                    <div class="customer-kicker text-dark">Fresh from our kitchen</div>
+                                    <h2 id="productModalTitle"></h2>
+                                    <p id="productModalDescription"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </th:block>
     </th:block>
-</th:block>
-<!-- page scripts go here -->
-<script>
-    /* ... your existing menu scripts ... */
-</script>
+    <script>
+        const csrf = document.querySelector('meta[name="_csrf"]')?.content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrf && csrfHeader) headers[csrfHeader] = csrf;
+
+        document.querySelectorAll('.add-cart').forEach(button => {
+            button.addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/api/cart/items', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({ menuItemId: button.dataset.id, quantity: 1 })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) {
+                        alert(data.message || 'Unable to add item.');
+                        return;
+                    }
+                    button.textContent = 'Added';
+                    setTimeout(() => button.textContent = 'Add to Cart', 900);
+                    window.refreshNavigationCart?.();
+                } catch (error) {
+                    alert('Unable to add item. Please try again.');
+                }
+            });
+        });
+
+        document.querySelectorAll('.food-image-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelector('#productModalTitle').textContent = button.dataset.name;
+                document.querySelector('#productModalDescription').textContent = button.dataset.description;
+                const image = document.querySelector('#productModalImage');
+                image.src = button.querySelector('img').src;
+                image.alt = button.dataset.name;
+            });
+        });
+
+        document.querySelector('#menuSearch').addEventListener('input', event => {
+            let visible = 0;
+            document.querySelectorAll('#menuGrid article').forEach(card => {
+                const show = card.dataset.search.toLowerCase().includes(event.target.value.toLowerCase());
+                card.classList.toggle('d-none', !show);
+                if (show) visible++;
+            });
+            document.querySelector('#noResults').classList.toggle('d-none', visible > 0);
+        });
+    </script>
 </body>
+
 </html>

@@ -5,6 +5,7 @@ import com.group3.cafeteria_system.repository.MenuItemRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class MenuService {
@@ -42,11 +43,13 @@ public class MenuService {
     // Staff management methods
     // Add a new menu item
     public MenuItem addItem(MenuItem item) {
+        validateStatus(item.getStatus());
         return menuItemRepository.save(item);
     }
 
     // Update an existing item (name, price, description, category)
     public MenuItem updateItem(Long id, MenuItem updatedItem) {
+        validateStatus(updatedItem.getStatus());
         MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
 
         item.setItemName(updatedItem.getItemName());
@@ -54,14 +57,24 @@ public class MenuService {
         item.setPrice(updatedItem.getPrice());
         item.setCategoryId(updatedItem.getCategoryId());
         item.setStatus(updatedItem.getStatus());
+        if (updatedItem.getImageUrl() != null) {
+            item.setImageUrl(updatedItem.getImageUrl());
+        }
         return menuItemRepository.save(item);
     }
 
     public MenuItem updateStatus(Long id, String status) {
+        validateStatus(status);
         MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
 
         item.setStatus(status);
         return menuItemRepository.save(item);
+    }
+
+    private void validateStatus(String status) {
+        if (status == null || !Set.of("Available", "Low Stock", "Sold Out").contains(status)) {
+            throw new IllegalArgumentException("Menu status must be Available, Low Stock, or Sold Out.");
+        }
     }
 
     public void removeItem(Long id) {

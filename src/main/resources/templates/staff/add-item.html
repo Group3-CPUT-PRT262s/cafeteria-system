@@ -163,6 +163,13 @@
                         </select>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label" for="image">Item image</label>
+                        <input class="form-control" type="file" id="image"
+                               accept="image/png,image/jpeg,image/gif">
+                        <small class="text-muted">Optional. JPEG, PNG, or GIF, up to 5 MB.</small>
+                    </div>
+
                     <div class="form-actions">
                         <button class="btn-save"
                                 id="saveBtn"
@@ -213,21 +220,20 @@
         btn.disabled    = true;
         btn.textContent = 'Saving...';
 
-        // CREATE — POST inserts into menu_items
+        const formData = new FormData();
+        formData.append('itemName', itemName);
+        formData.append('description', description);
+        formData.append('price', price);
+        formData.append('categoryId', categoryId);
+        formData.append('status', status);
+        const image = document.getElementById('image').files[0];
+        if (image) formData.append('image', image);
+
         fetch('/api/staff/menu', {
             method: 'POST',
             credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-                [csrfHeader]: csrfToken
-            },
-            body: JSON.stringify({
-                itemName: itemName,
-                description: description,
-                price: Number.parseFloat(price),
-                categoryId: Number.parseInt(categoryId),
-                status: status
-            })
+            headers: { [csrfHeader]: csrfToken },
+            body: formData
         })
             .then(r => r.json())
             .then(data => {

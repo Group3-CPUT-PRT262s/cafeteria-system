@@ -23,12 +23,21 @@ public class User {
     @Column(name = "last_name")
     private String lastName;
 
+    @Column(name = "profile_picture_url")
+    private String profilePictureUrl;
+
     @Column(nullable = false, unique = true)
     private String email;
 
     // Role values: STUDENT, STAFF, ADMIN
     @Column(nullable = false)
     private String role;
+
+    @Column(name = "wallet_balance")
+    private Double walletBalance = 500.0;
+
+    @Column(name = "account_status")
+    private String accountStatus = "ACTIVE";
 
     @Column(name = "created_at")  // when account was created
     private LocalDateTime createdAt;
@@ -71,7 +80,9 @@ public class User {
     // if first/last name not set
     public String getDisplayName() {
         if (firstName != null && !firstName.isEmpty()) {
-            return firstName + " " + lastName;
+            return lastName == null || lastName.isBlank()
+                    ? firstName
+                    : firstName + " " + lastName;
         }
         return username;
     }
@@ -80,11 +91,14 @@ public class User {
     public Long getUserId() { return userId; } // PK for table/database
     public String getUsername() { return username; }
     public String getLastName() { return lastName; }
+    public String getProfilePictureUrl() { return profilePictureUrl; }
     public String getPasswordHash() { return passwordHash; }
     public String getFirstName() { return firstName; }
     public void setUserId(Long userId) { this.userId = userId; }
     public String getRole() { return role; }
     public String getEmail() { return email; }
+    public Double getWalletBalance() { return walletBalance; }
+    public String getAccountStatus() { return accountStatus == null ? "ACTIVE" : accountStatus; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 
 
@@ -92,7 +106,12 @@ public class User {
     public void setPasswordHash(String passwordHash) {this.passwordHash = passwordHash;}
     public void setFirstName(String firstName) {this.firstName = firstName;}
     public void setLastName(String lastName) {this.lastName = lastName;}
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
+    }
     public void setEmail(String email) { this.email = email; }
+    public void setWalletBalance(Double walletBalance) { this.walletBalance = walletBalance; }
+    public void setAccountStatus(String accountStatus) { this.accountStatus = accountStatus; }
     public void setRole(String role) { this.role = role; }
     public void setCreatedAt(LocalDateTime createdAt) {this.createdAt = createdAt;}
 }

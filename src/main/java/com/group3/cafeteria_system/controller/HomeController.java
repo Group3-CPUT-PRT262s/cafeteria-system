@@ -7,19 +7,30 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class HomeController {
 
+    @GetMapping("/")
+    public String home(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/login";
+        }
+        return isStaff(authentication)
+                ? "redirect:/staff/dashboard"
+                : "redirect:/customer/menu";
+    }
+
     @GetMapping("/dashboard")
     public String dashboard(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return "redirect:/login";
         }
 
-        boolean isStaff = authentication.getAuthorities().stream()
+        return isStaff(authentication)
+                ? "redirect:/staff/dashboard"
+                : "redirect:/customer/menu";
+    }
+
+    private boolean isStaff(Authentication authentication) {
+        return authentication.getAuthorities().stream()
                 .anyMatch(auth -> auth.getAuthority().equals("ROLE_STAFF")
                         || auth.getAuthority().equals("ROLE_ADMIN"));
-
-        if (isStaff) {
-            return "redirect:/staff/dashboard";
-        }
-        return "redirect:/customer/menu";
     }
 }

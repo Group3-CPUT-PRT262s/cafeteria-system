@@ -20,7 +20,7 @@ public class Payment {
     @Column(name = "amount_paid", nullable = false)
     private Double amountPaid;
 
-    // e.g. Card, Cash, EFT, Stripe
+    // Payment channel, e.g. the demo WALLET
     @Column(name = "payment_method")
     private String paymentMethod;
 

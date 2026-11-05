@@ -8,14 +8,18 @@ import org.springframework.stereotype.Service;
 
 import com.group3.cafeteria_system.model.Category;
 import com.group3.cafeteria_system.repository.CategoryRepository;
+import com.group3.cafeteria_system.repository.MenuItemRepository;
 
 @Service
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final MenuItemRepository menuItemRepository;
 
-    public CategoryService(CategoryRepository categoryRepository) {
+    public CategoryService(CategoryRepository categoryRepository,
+                           MenuItemRepository menuItemRepository) {
         this.categoryRepository = categoryRepository;
+        this.menuItemRepository = menuItemRepository;
     }
 
     public List<Category> getAllCategories() {
@@ -27,23 +31,41 @@ public class CategoryService {
     }
 
     public Category addCategory(String name) {
-        if (name == null || name.trim().isBlank()) {
-            throw new NullPointerException("Category name is required, cant be empty or only spaces.");
-        }
-
-        String trimmedName = name.trim();
-        if (categoryRepository.existsByCategoryName(trimmedName)) {
+        String trimmedName = normalizeName(name);
+        if (categoryRepository.existsByCategoryNameIgnoreCase(trimmedName)) {
             throw new IllegalArgumentException("Category already exists: " + trimmedName);
         }
         return categoryRepository.save(new Category(trimmedName));
     }
 
+    public Category updateCategory(Long id, String name) {
+        Category category = getCategoryById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found."));
+        String normalizedName = normalizeName(name);
+        if (categoryRepository.existsByCategoryNameIgnoreCaseAndCategoryIdNot(normalizedName, id)) {
+            throw new IllegalArgumentException("Category already exists: " + normalizedName);
+        }
+        category.setCategoryName(normalizedName);
+        return categoryRepository.save(category);
+    }
+
     public void deleteCategory(Long id) {
         Long categoryId = Objects.requireNonNull(id, "Category id is required.");
-        Category category = Objects.requireNonNull(
-                categoryRepository.findById(categoryId).orElseThrow(() -> new RuntimeException("Category not found.")),
-                "Category not found."
-        );
+        Category category = getCategoryById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found."));
+        long itemCount = menuItemRepository.countByCategoryId(categoryId);
+        if (itemCount > 0) {
+            throw new IllegalStateException(
+                    "This category is used by " + itemCount
+                            + " menu item(s). Reassign those items before deleting the category.");
+        }
         categoryRepository.delete(category);
+    }
+
+    private String normalizeName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Category name is required.");
+        }
+        return name.trim();
     }
 }

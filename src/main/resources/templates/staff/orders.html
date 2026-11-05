@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{base :: head}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/staff.css}">
+    <title th:text="${pageTitle}">Customer Orders</title>
+</head>
+<body>
+<th:block th:replace="~{base :: layout(~{::content})}">
+    <th:block th:fragment="content">
+        <main class="staff-page">
+            <header class="staff-page-header">
+                <div>
+                    <span class="staff-eyebrow">Customer orders</span>
+                    <h1>Orders</h1>
+                    <p>Oldest orders appear first. Update each order as it moves through preparation and collection.</p>
+                </div>
+                <div class="staff-header-actions">
+                    <span id="ordersUpdated" class="staff-updated" aria-live="polite"></span>
+                    <button class="staff-button staff-button-secondary" id="refreshOrders" type="button">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+            </header>
+
+            <div class="staff-order-toolbar">
+                <label class="staff-search">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <span class="visually-hidden">Search orders</span>
+                    <input id="orderSearch" type="search" placeholder="Search order or customer">
+                </label>
+                <label class="visually-hidden" for="orderStatusFilter">Filter orders by status</label>
+                <select id="orderStatusFilter" class="staff-select">
+                    <option value="active">Orders needing attention</option>
+                    <option value="all">All orders</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Prepared">Prepared</option>
+                    <option value="Ready">Ready</option>
+                    <option value="Collected">Collected</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+                <span id="orderCount" class="staff-order-count"></span>
+            </div>
+
+            <div id="orderLoading" class="staff-empty">
+                <span class="spinner-border spinner-border-sm" role="status"></span> Loading orders…
+            </div>
+            <div id="orderList" class="staff-orders" aria-live="polite"></div>
+            <div id="orderEmpty" class="staff-empty d-none">
+                <i class="bi bi-inbox"></i>
+                <strong>No orders to show</strong>
+                <span>New customer orders will appear here automatically.</span>
+            </div>
+            <p id="orderError" class="staff-error d-none" role="alert"></p>
+        </main>
+
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div id="staffToast" class="toast border-0" role="status" aria-live="polite">
+                <div class="d-flex">
+                    <div class="toast-body" id="staffToastMessage"></div>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</th:block>
+<script>
+    let staffOrders = [];
+    let orderRequestPending = false;
+    function csrfHeaders(headers = {}) {
+        const token = document.querySelector('meta[name="_csrf"]')?.content;
+        const headerName = document.querySelector('meta[name="_csrf_header"]')?.content;
+        if (!token || !headerName) {
+            throw new Error('Security token is missing. Refresh the page and try again.');
+        }
+        return { ...headers, [headerName]: token };
+    }
+
+    const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[character]));
+    const money = value => `R${Number(value || 0).toFixed(2)}`;
+    const canonicalStatus = status => ({ Confirmed: 'Pending', Preparing: 'Prepared' }[status] || status);
+    const statusClass = status => `staff-status-${canonicalStatus(status).toLowerCase()}`;
+
+    function orderActions(order) {
+        const status = canonicalStatus(order.orderStatus);
+        const next = {
+            Pending: ['Prepared', 'Cancelled'],
+            Prepared: ['Ready', 'Cancelled'],
+            Ready: ['Collected', 'Cancelled'],
+            Collected: [],
+            Cancelled: []
+        }[status] || [];
+        return next.map(nextStatus => `
+            <button type="button" class="staff-button ${nextStatus === 'Cancelled' ? 'staff-button-danger' : 'staff-button-primary'}"
+                    data-order-id="${order.orderId}" data-next-status="${nextStatus}">
+                ${nextStatus === 'Cancelled' ? 'Cancel order' : `Mark ${nextStatus}`}
+            </button>`).join('');
+    }
+
+    function renderOrder(order) {
+        const status = canonicalStatus(order.orderStatus);
+        const itemRows = (order.items || []).map(item => `
+            <li class="staff-order-item">
+                <div class="staff-order-item-main">
+                    <strong>${escapeHtml(item.itemName)}</strong>
+                    <span>${item.quantity} × ${money(item.unitPrice)}</span>
+                    ${item.available
+                        ? `<button type="button" class="staff-item-stock" data-order-id="${order.orderId}" data-item-id="${item.menuItemId}">Mark item out of stock</button>`
+                        : `<span class="staff-item-unavailable">${escapeHtml(item.itemStatus || 'Unavailable')} — new orders blocked</span>`}
+                </div>
+                <strong>${money(item.subtotal)}</strong>
+            </li>`).join('');
+
+        return `<article class="staff-order-card" data-order-id="${order.orderId}">
+            <header class="staff-order-header">
+                <div>
+                    <span class="staff-order-number">Order #${order.orderId}</span>
+                    <span class="staff-order-customer">${escapeHtml(order.customerName)}</span>
+                </div>
+                <span class="staff-status ${statusClass(status)}">${escapeHtml(status)}</span>
+            </header>
+            <div class="staff-order-meta">
+                <span><i class="bi bi-calendar3"></i> ${escapeHtml(new Date(order.orderedAt).toLocaleString())}</span>
+                <span><i class="bi bi-clock"></i> Collection: ${escapeHtml(order.timeSlot || 'Unavailable')}</span>
+            </div>
+            <ul class="staff-order-items">${itemRows || '<li>Order items unavailable.</li>'}</ul>
+            <div class="staff-order-total"><span>Order total</span><strong>${money(order.totalAmount)}</strong></div>
+            <footer class="staff-order-actions">${orderActions(order)}</footer>
+        </article>`;
+    }
+
+    function applyOrderFilters() {
+        const search = document.querySelector('#orderSearch').value.trim().toLowerCase();
+        const selectedStatus = document.querySelector('#orderStatusFilter').value;
+        const visibleOrders = staffOrders.filter(order => {
+            const status = canonicalStatus(order.orderStatus);
+            if (selectedStatus === 'active' && ['Collected', 'Cancelled'].includes(status)) return false;
+            if (!['active', 'all'].includes(selectedStatus) && status !== selectedStatus) return false;
+            return !search || `${order.orderId} ${order.customerName}`.toLowerCase().includes(search);
+        });
+
+        const list = document.querySelector('#orderList');
+        list.innerHTML = visibleOrders.map(renderOrder).join('');
+        document.querySelector('#orderCount').textContent =
+            `${visibleOrders.length} of ${staffOrders.length} orders`;
+        document.querySelector('#orderEmpty').classList.toggle('d-none', visibleOrders.length > 0);
+        document.querySelector('#orderLoading').classList.add('d-none');
+    }
+
+    function showStaffToast(message, isError = false) {
+        const toast = document.querySelector('#staffToast');
+        toast.classList.toggle('staff-toast-error', isError);
+        document.querySelector('#staffToastMessage').textContent = message;
+        bootstrap.Toast.getOrCreateInstance(toast, { delay: 3500 }).show();
+    }
+
+    async function loadStaffOrders() {
+        if (orderRequestPending) return;
+        orderRequestPending = true;
+        try {
+            const response = await fetch('/api/staff/orders', {
+                credentials: 'same-origin',
+                cache: 'no-store'
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Unable to load orders.');
+            staffOrders = data;
+            document.querySelector('#orderError').classList.add('d-none');
+            document.querySelector('#ordersUpdated').textContent =
+                `Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            applyOrderFilters();
+        } catch (error) {
+            document.querySelector('#orderLoading').classList.add('d-none');
+            const message = document.querySelector('#orderError');
+            message.textContent = error.message || 'Unable to load orders. Please try again.';
+            message.classList.remove('d-none');
+        } finally {
+            orderRequestPending = false;
+        }
+    }
+
+    async function updateOrderStatus(orderId, status, button) {
+        button.disabled = true;
+        try {
+            const response = await fetch(`/api/staff/orders/${orderId}/status`, {
+                method: 'PATCH',
+                credentials: 'same-origin',
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ status })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Unable to update order.');
+            showStaffToast(result.message);
+            await loadStaffOrders();
+            window.refreshDashboardStats?.();
+        } catch (error) {
+            button.disabled = false;
+            showStaffToast(error.message || 'Unable to update order.', true);
+        }
+    }
+
+    async function markItemOutOfStock(orderId, itemId, button) {
+        button.disabled = true;
+        try {
+            const response = await fetch(`/api/staff/orders/${orderId}/items/${itemId}/out-of-stock`, {
+                method: 'PATCH',
+                credentials: 'same-origin',
+                headers: csrfHeaders()
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Unable to update item availability.');
+            showStaffToast(result.message);
+            await loadStaffOrders();
+        } catch (error) {
+            button.disabled = false;
+            showStaffToast(error.message || 'Unable to update item availability.', true);
+        }
+    }
+
+    document.querySelector('#orderSearch').addEventListener('input', applyOrderFilters);
+    document.querySelector('#orderStatusFilter').addEventListener('change', applyOrderFilters);
+    document.querySelector('#refreshOrders').addEventListener('click', loadStaffOrders);
+    document.querySelector('#orderList').addEventListener('click', event => {
+        const statusButton = event.target.closest('[data-next-status]');
+        if (statusButton) {
+            updateOrderStatus(statusButton.dataset.orderId, statusButton.dataset.nextStatus, statusButton);
+            return;
+        }
+        const stockButton = event.target.closest('[data-item-id]');
+        if (stockButton) markItemOutOfStock(stockButton.dataset.orderId, stockButton.dataset.itemId, stockButton);
+    });
+
+    loadStaffOrders();
+    window.setInterval(loadStaffOrders, 15000);
+</script>
+</body>
+</html>

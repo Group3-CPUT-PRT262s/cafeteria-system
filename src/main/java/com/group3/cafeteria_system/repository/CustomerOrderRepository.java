@@ -14,6 +14,10 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Lo
     // For staff dashboard filtering
     List<CustomerOrder> findByOrderStatus(String orderStatus);
 
+    List<CustomerOrder> findAllByOrderByOrderedAtAsc();
+
     // For grouping orders by pickup slot
     List<CustomerOrder> findByTimeSlotId(Long timeSlotId);
+
+    boolean existsByTimeSlotId(Long timeSlotId);
 }

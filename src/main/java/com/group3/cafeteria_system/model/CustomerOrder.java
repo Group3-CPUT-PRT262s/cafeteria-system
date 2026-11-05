@@ -29,7 +29,7 @@ public class CustomerOrder {
     @Column(name = "total_amount", nullable = false)
     private Double totalAmount;
 
-    // Lifecycle: Pending → Ready → Collected
+    // Lifecycle: Pending → Prepared → Ready → Collected
     @Column(name = "order_status", nullable = false)
     private String orderStatus;
 
@@ -56,9 +56,11 @@ public class CustomerOrder {
     // Since we need to cycle through the order state, this method does this.
     public void advanceStatus() {
         switch (orderStatus) {
-            case "Pending" -> orderStatus = "Ready";
-            case "Ready"   -> orderStatus = "Collected";
-            default        -> orderStatus = "Pending";
+            case "Pending"  -> orderStatus = "Prepared";
+            case "Prepared" -> orderStatus = "Ready";
+            case "Ready"    -> orderStatus = "Collected";
+            default -> throw new IllegalStateException(
+                    "Order status cannot advance from " + orderStatus + ".");
         }
     }
 

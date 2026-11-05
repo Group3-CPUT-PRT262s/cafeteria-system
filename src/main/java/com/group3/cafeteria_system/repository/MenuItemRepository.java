@@ -16,4 +16,6 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
 
     // Active items filtered by status
     List<MenuItem> findByIsActiveTrueAndStatus(String status);
+
+    long countByCategoryId(Long categoryId);
 }

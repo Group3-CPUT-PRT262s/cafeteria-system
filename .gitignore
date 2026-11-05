@@ -36,6 +36,7 @@ application-local.properties
 *.log
 logs/
 log/
+uploads/
 
 # ── macOS ─────────────────────────────────────
 .DS_Store

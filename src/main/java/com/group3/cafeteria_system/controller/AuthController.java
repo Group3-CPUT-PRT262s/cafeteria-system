@@ -58,8 +58,7 @@ public class AuthController {
                     "Incorrect username or password. " +
                             "Please try again.");
             model.addAttribute("errorMessage",
-                    "Incorrect username or password. " +
-                            "Please try again.");
+                    "Incorrect username or password. " + "Please try again.");
         }
         if (logout != null) {
             model.addAttribute("successMessage",

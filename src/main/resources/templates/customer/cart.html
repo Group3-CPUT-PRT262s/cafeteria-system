@@ -1,26 +1,42 @@
 <!DOCTYPE html>
-<html lang="en"
-      xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <th:block th:replace="~{base :: head}"></th:block>
-    <title th:text="${pageTitle}">Menu</title>
-    <!-- page styles go here -->
-    <style>
-        /* ... your existing menu styles ... */
-    </style>
+    <link rel="stylesheet" th:href="@{/css/customer.css}">
+    <title th:text="${pageTitle}">Your Cart</title>
 </head>
+
 <body>
-<th:block th:replace="~{base :: layout(~{::content})}">
-    <th:block th:fragment="content">
-
-        <!-- ALL your existing menu page HTML goes here -->
-
+    <th:block th:replace="~{base :: layout(~{::content})}">
+        <th:block th:fragment="content">
+            <section class="customer-page">
+                <div class="checkout-layout">
+                    <div>
+                        <div class="customer-kicker text-dark">Your selection</div>
+                        <h1 class="mb-0">Your cart</h1>
+                    </div><a class="btn btn-outline-secondary" th:href="@{/menu}">Continue browsing</a>
+                </div>
+                <div class="checkout-grid">
+                    <section class="customer-card">
+                        <div id="cartLines"></div>
+                        <div id="emptyCart" class="empty-state d-none">Your cart is empty.<br><a th:href="@{/menu}"
+                                class="btn btn-success mt-3">Browse the menu</a>
+                        </div>
+                    </section>
+                    <aside class="customer-card">
+                        <h2>Order summary</h2>
+                        <p class="text-muted small">Prices are refreshed from the current menu before checkout.</p>
+                        <div class="summary-total"><span>Total</span><span id="cartTotal">R0.00</span></div><a
+                            id="checkoutLink" class="btn btn-success w-100 mt-3" th:href="@{/confirmation}">Choose
+                            pickup time</a><button id="clearCart" class="btn btn-link text-danger w-100 mt-2">Clear
+                            cart</button>
+                    </aside>
+                </div>
+            </section>
+        </th:block>
     </th:block>
-</th:block>
-<!-- page scripts go here -->
-<script>
-    /* ... your existing menu scripts ... */
-</script>
+    <script>const csrf = document.querySelector('meta[name="_csrf"]')?.content, csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content; const headers = { 'Content-Type': 'application/json' }; if (csrf && csrfHeader) headers[csrfHeader] = csrf; const money = n => 'R' + Number(n).toFixed(2); async function load() { const r = await fetch('/api/cart'), d = await r.json(), lines = document.querySelector('#cartLines'); lines.innerHTML = d.items.map(i => `<div class="cart-line"><div><strong>${i.itemName}</strong><div class="text-muted small">${money(i.price)} each</div><button class="btn btn-link text-danger p-0 small remove" data-id="${i.menuItemId}">Remove</button></div><div class="text-end"><div class="quantity-control"><button data-action="minus" data-id="${i.menuItemId}" data-qty="${i.quantity}">−</button><span>${i.quantity}</span><button data-action="plus" data-id="${i.menuItemId}" data-qty="${i.quantity}">+</button></div><strong class="d-block mt-2">${money(i.subtotal)}</strong></div></div>`).join(''); document.querySelector('#cartTotal').textContent = money(d.totalPrice); document.querySelector('#emptyCart').classList.toggle('d-none', d.items.length > 0); document.querySelector('#checkoutLink').classList.toggle('disabled', !d.items.length); document.querySelectorAll('#cartCount').forEach(x => x.textContent = d.itemCount); document.querySelectorAll('[data-action]').forEach(b => b.onclick = () => change(b.dataset.id, Number(b.dataset.qty) + (b.dataset.action === 'plus' ? 1 : -1))); document.querySelectorAll('.remove').forEach(b => b.onclick = () => remove(b.dataset.id)); } async function change(id, quantity) { if (quantity < 1) return remove(id); await fetch('/api/cart/items/' + id, { method: 'PUT', headers, body: JSON.stringify({ quantity }) }); load() } async function remove(id) { await fetch('/api/cart/items/' + id, { method: 'DELETE', headers }); load() } document.querySelector('#clearCart').onclick = async () => { await fetch('/api/cart', { method: 'DELETE', headers }); load() }; load();</script>
 </body>
+
 </html>
