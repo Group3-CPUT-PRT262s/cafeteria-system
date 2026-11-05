@@ -1,0 +1,31 @@
+:root { --cx-ink:#18322a; --cx-surface:#fffdf8; --cx-bg:#f4f0e7; --cx-accent:#df9135; --cx-line:#e2dacb; --cx-muted:#667269; }
+.customer-page { max-width:1180px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+.customer-hero { background:linear-gradient(135deg,#18322a,#31513c); color:#fffdf8; border-radius:24px; padding:clamp(2rem,5vw,4.5rem); margin-bottom:2rem; position:relative; overflow:hidden; }
+.customer-hero:after { content:""; position:absolute; width:280px; height:280px; border-radius:50%; background:rgba(223,145,53,.3); right:-90px; top:-130px; }
+.customer-hero h1,.customer-hero h2 { color:#fffdf8; font-size:clamp(2rem,5vw,3.7rem); max-width:650px; position:relative; z-index:1; }
+.customer-hero p { max-width:590px; color:#d9e3d9; font-size:1.05rem; position:relative; z-index:1; }
+.customer-kicker { color:#f3c47f; letter-spacing:.08em; text-transform:uppercase; font-weight:700; font-size:.78rem; }
+.menu-toolbar,.checkout-layout { display:grid; grid-template-columns:1fr auto; gap:1rem; align-items:center; margin-bottom:1.25rem; }
+.category-pills { display:flex; flex-wrap:wrap; gap:.55rem; margin-bottom:1.5rem; }
+.category-pill { border:1px solid var(--cx-line); color:var(--cx-ink); background:#fff; padding:.5rem .9rem; border-radius:999px; text-decoration:none; font-weight:600; font-size:.9rem; }
+.category-pill.active,.category-pill:hover { background:var(--cx-ink); color:#fff; border-color:var(--cx-ink); }
+.menu-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(235px,1fr)); gap:1.25rem; }
+.food-card,.customer-card { background:var(--cx-surface); border:1px solid var(--cx-line); border-radius:18px; box-shadow:0 10px 24px rgba(24,50,42,.06); }
+.food-card { overflow:hidden; display:flex; flex-direction:column; }
+.food-card-art { min-height:124px; background:linear-gradient(135deg,#31513c,#dca04e); display:flex; align-items:end; padding:1rem; color:#fff; }
+.food-card-body { padding:1.1rem; display:flex; flex-direction:column; flex:1; }
+.food-card h3 { font-size:1.05rem; color:var(--cx-ink); margin:0; }
+.food-card p { color:var(--cx-muted); font-size:.87rem; min-height:42px; }
+.price { color:#b46713; font-weight:800; font-size:1.1rem; }
+.stock { border-radius:999px; font-size:.72rem; font-weight:700; padding:.25rem .55rem; background:#e5f3e7; color:#23663b; }
+.stock.low { background:#fff2d7; color:#9d650b; }.stock.sold { background:#f1eded; color:#716a68; }
+.customer-card { padding:1.35rem; }.customer-card h2 { color:var(--cx-ink); font-size:1.2rem; }
+.cart-line,.order-line { display:flex; justify-content:space-between; gap:1rem; padding:1rem 0; border-bottom:1px solid var(--cx-line); }
+.quantity-control { display:inline-flex; align-items:center; border:1px solid var(--cx-line); border-radius:9px; overflow:hidden; }
+.quantity-control button { border:0; background:#fff; padding:.3rem .55rem; }.quantity-control span { min-width:2rem; text-align:center; font-weight:700; }
+.summary-total { display:flex; justify-content:space-between; padding-top:1rem; font-size:1.2rem; font-weight:800; color:var(--cx-ink); }
+.checkout-grid { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(300px,.8fr); gap:1.5rem; }
+.choice { display:block; border:1px solid var(--cx-line); border-radius:12px; padding:.85rem 1rem; margin:.6rem 0; cursor:pointer; }.choice:has(input:checked) { border-color:var(--cx-ink); background:#edf4ec; }
+.status-pill { border-radius:999px; padding:.3rem .65rem; font-size:.75rem; font-weight:800; display:inline-block; background:#fff2d7; color:#8d5b08; }.status-pill.Ready { background:#dff2e4; color:#24663d; }.status-pill.Collected { background:#e7eaee; color:#48515b; }
+.empty-state { text-align:center; padding:4rem 1rem; color:var(--cx-muted); }.form-label { color:var(--cx-ink); font-weight:700; }
+@media (max-width:760px) { .customer-page{padding:1.25rem 1rem 3rem}.menu-toolbar,.checkout-layout,.checkout-grid{grid-template-columns:1fr}.customer-hero{padding:2rem}.menu-grid{grid-template-columns:1fr} }

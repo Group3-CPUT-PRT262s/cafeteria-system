@@ -244,6 +244,28 @@ public class UserService implements UserDetailsService {
         );
     }
 
+    public User updateProfile(String username, String firstName,
+                              String lastName, String email) {
+        User user = findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found."));
+
+        String normalizedEmail = normalizeEmail(email);
+        if (normalizedEmail.isBlank() || !normalizedEmail.contains("@")) {
+            throw new IllegalArgumentException("A valid email address is required.");
+        }
+
+        userRepository.findByEmail(normalizedEmail)
+                .filter(existing -> !existing.getUserId().equals(user.getUserId()))
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException("Email already registered.");
+                });
+
+        user.setFirstName(firstName == null ? "" : firstName.trim());
+        user.setLastName(lastName == null ? "" : lastName.trim());
+        user.setEmail(normalizedEmail);
+        return userRepository.save(user);
+    }
+
     // ---------------------------------------------------------
     // Password reset
     // ---------------------------------------------------------

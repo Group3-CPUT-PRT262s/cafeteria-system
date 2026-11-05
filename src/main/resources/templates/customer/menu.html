@@ -1,26 +1,19 @@
 <!DOCTYPE html>
-<html lang="en"
-      xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head>
-    <th:block th:replace="~{base :: head}"></th:block>
-    <title th:text="${pageTitle}">Menu</title>
-    <!-- page styles go here -->
-    <style>
-        /* ... your existing menu styles ... */
-    </style>
-</head>
-<body>
-<th:block th:replace="~{base :: layout(~{::content})}">
-    <th:block th:fragment="content">
-
-        <!-- ALL your existing menu page HTML goes here -->
-
-    </th:block>
-</th:block>
-<!-- page scripts go here -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><th:block th:replace="~{base :: head}"></th:block><link rel="stylesheet" th:href="@{/css/customer.css}"><title th:text="${pageTitle}">Menu</title></head>
+<body><th:block th:replace="~{base :: layout(~{::content})}"><th:block th:fragment="content">
+<section class="customer-page">
+ <div class="customer-hero"><div class="customer-kicker">Campus Cafeteria</div><h1>Good food, ready when your class is.</h1><p>Browse live menu items, see current prices and availability, then collect your order at the time that works for you.</p><a class="btn btn-light mt-3 fw-bold" th:href="@{/cart}">View cart <span id="heroCartCount" class="badge text-bg-dark">0</span></a></div>
+ <div class="menu-toolbar"><div><div class="customer-kicker text-dark">Today's selection</div><h2 class="mb-0">Fresh from the kitchen</h2></div><input id="menuSearch" class="form-control" style="max-width:280px" placeholder="Search the menu"></div>
+ <nav class="category-pills"><a class="category-pill" th:classappend="${activeCategoryId == null} ? ' active'" th:href="@{/menu}">All</a><a th:each="category : ${categories}" class="category-pill" th:classappend="${activeCategoryId == category.categoryId} ? ' active'" th:href="@{/menu(categoryId=${category.categoryId})}" th:text="${category.categoryName}"></a></nav>
+ <div class="menu-grid" id="menuGrid"><article class="food-card" th:each="item : ${items}" th:attr="data-search=${item.itemName + ' ' + item.description}"><div class="food-card-art"><span class="stock" th:classappend="${item.status == 'Low Stock'} ? ' low' : (${item.status == 'Sold Out'} ? ' sold' : '')" th:text="${item.status}"></span></div><div class="food-card-body"><div class="d-flex justify-content-between gap-2"><h3 th:text="${item.itemName}">Item</h3><span class="price" th:text="'R' + ${#numbers.formatDecimal(item.price,1,'COMMA',2,'POINT')}"></span></div><p th:text="${item.description}"></p><button class="btn btn-outline-success w-100 mt-auto add-cart" th:data-id="${item.menuItemId}" th:disabled="${!item.available}" th:text="${item.available} ? 'Add to cart' : 'Sold out'"></button></div></article></div>
+ <div id="noResults" class="empty-state d-none">No menu items match that search.</div>
+</section>
+</th:block></th:block>
 <script>
-    /* ... your existing menu scripts ... */
-</script>
-</body>
-</html>
+const csrf=document.querySelector('meta[name="_csrf"]')?.content, csrfHeader=document.querySelector('meta[name="_csrf_header"]')?.content;
+const headers={'Content-Type':'application/json'}; if(csrf&&csrfHeader) headers[csrfHeader]=csrf;
+async function refreshCount(){const r=await fetch('/api/cart');if(r.ok){const d=await r.json();document.querySelectorAll('#heroCartCount,#cartCount').forEach(x=>x.textContent=d.itemCount)}}
+document.querySelectorAll('.add-cart').forEach(button=>button.addEventListener('click',async()=>{const r=await fetch('/api/cart/items',{method:'POST',headers,body:JSON.stringify({menuItemId:button.dataset.id,quantity:1})});const d=await r.json();if(r.ok){button.textContent='Added';setTimeout(()=>button.textContent='Add to cart',900);refreshCount()}else alert(d.message||'Unable to add item.')}));
+document.querySelector('#menuSearch').addEventListener('input',e=>{let visible=0;document.querySelectorAll('#menuGrid article').forEach(card=>{const show=card.dataset.search.toLowerCase().includes(e.target.value.toLowerCase());card.classList.toggle('d-none',!show);if(show)visible++});document.querySelector('#noResults').classList.toggle('d-none',visible>0)});refreshCount();
+</script></body></html>
