@@ -36,7 +36,7 @@
      Every page calls this fragment and inserts
      its own content via the ~{::content} selector
      ═══════════════════════════════════════════ -->
-<div th:fragment="layout(content)">
+<div class="cc-layout" th:fragment="layout(content)">
 
     <!-- ── Navbar ───────────────────────────── -->
     <nav class="navbar navbar-expand-lg navbar-dark cc-navbar sticky-top">
@@ -187,10 +187,15 @@
                            href="#"
                            data-bs-toggle="dropdown">
                             <div class="user-avatar">
-                                <span sec:authentication="name">
-                                    U
-                                </span>
-                            </div>
+                               <img th:if="${navUser != null and !#strings.isEmpty(navUser.profilePictureUrl)}"
+                                    th:src="${navUser.profilePictureUrl}"
+                                    th:alt="${navUser.displayName + ' profile picture'}"
+                                    onerror="this.hidden=true;this.nextElementSibling.classList.remove('d-none')">
+                               <span th:classappend="${navUser != null and !#strings.isEmpty(navUser.profilePictureUrl)} ? ' d-none' : ''"
+                                     th:text="${navUser != null ? #strings.substring(navUser.displayName, 0, 1).toUpperCase() : 'U'}">
+                                   U
+                               </span>
+                           </div>
                             <span class="d-none d-lg-inline"
                                   sec:authentication="name">
                                 User

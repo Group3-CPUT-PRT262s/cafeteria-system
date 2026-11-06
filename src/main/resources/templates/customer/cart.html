@@ -10,33 +10,174 @@
 <body>
     <th:block th:replace="~{base :: layout(~{::content})}">
         <th:block th:fragment="content">
-            <section class="customer-page">
-                <div class="checkout-layout">
+            <section class="customer-page cart-page">
+                <header class="checkout-layout">
                     <div>
                         <div class="customer-kicker text-dark">Your selection</div>
                         <h1 class="mb-0">Your cart</h1>
-                    </div><a class="btn btn-outline-secondary" th:href="@{/menu}">Continue browsing</a>
-                </div>
+                    </div>
+                    <a class="cart-action-button cart-continue" th:href="@{/menu}">
+                        <i class="bi bi-arrow-left"></i>
+                        Continue shopping
+                    </a>
+                </header>
+
+                <div id="cartError" class="alert alert-danger d-none" role="alert"></div>
                 <div class="checkout-grid">
-                    <section class="customer-card">
-                        <div id="cartLines"></div>
-                        <div id="emptyCart" class="empty-state d-none">Your cart is empty.<br><a th:href="@{/menu}"
-                                class="btn btn-success mt-3">Browse the menu</a>
+                    <section class="customer-card cart-items-card" aria-label="Items in your cart">
+                        <div id="cartLines" aria-live="polite"></div>
+                        <div id="emptyCart" class="empty-state d-none">
+                            <i class="bi bi-bag cart-empty-icon" aria-hidden="true"></i>
+                            <h2>Your cart is waiting</h2>
+                            <p>Browse the menu and add something tasty to get started.</p>
+                            <a th:href="@{/menu}" class="cart-action-button cart-primary">
+                                Browse the menu
+                            </a>
                         </div>
                     </section>
-                    <aside class="customer-card">
+
+                    <aside class="customer-card cart-summary">
                         <h2>Order summary</h2>
                         <p class="text-muted small">Prices are refreshed from the current menu before checkout.</p>
-                        <div class="summary-total"><span>Total</span><span id="cartTotal">R0.00</span></div><a
-                            id="checkoutLink" class="btn btn-success w-100 mt-3" th:href="@{/confirmation}">Choose
-                            pickup time</a><button id="clearCart" class="btn btn-link text-danger w-100 mt-2">Clear
-                            cart</button>
+                        <div class="summary-total">
+                            <span>Total</span>
+                            <span id="cartTotal">R0.00</span>
+                        </div>
+                        <a id="checkoutLink" class="cart-action-button cart-primary w-100 mt-3"
+                           th:href="@{/confirmation}">
+                            Choose pickup time
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                        <button id="clearCart" type="button"
+                                class="cart-action-button cart-clear w-100 mt-2">
+                            <i class="bi bi-trash3"></i>
+                            Clear cart
+                        </button>
                     </aside>
                 </div>
             </section>
         </th:block>
     </th:block>
-    <script>const csrf = document.querySelector('meta[name="_csrf"]')?.content, csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content; const headers = { 'Content-Type': 'application/json' }; if (csrf && csrfHeader) headers[csrfHeader] = csrf; const money = n => 'R' + Number(n).toFixed(2); async function load() { const r = await fetch('/api/cart'), d = await r.json(), lines = document.querySelector('#cartLines'); lines.innerHTML = d.items.map(i => `<div class="cart-line"><div><strong>${i.itemName}</strong><div class="text-muted small">${money(i.price)} each</div><button class="btn btn-link text-danger p-0 small remove" data-id="${i.menuItemId}">Remove</button></div><div class="text-end"><div class="quantity-control"><button data-action="minus" data-id="${i.menuItemId}" data-qty="${i.quantity}">−</button><span>${i.quantity}</span><button data-action="plus" data-id="${i.menuItemId}" data-qty="${i.quantity}">+</button></div><strong class="d-block mt-2">${money(i.subtotal)}</strong></div></div>`).join(''); document.querySelector('#cartTotal').textContent = money(d.totalPrice); document.querySelector('#emptyCart').classList.toggle('d-none', d.items.length > 0); document.querySelector('#checkoutLink').classList.toggle('disabled', !d.items.length); document.querySelectorAll('#cartCount').forEach(x => x.textContent = d.itemCount); document.querySelectorAll('[data-action]').forEach(b => b.onclick = () => change(b.dataset.id, Number(b.dataset.qty) + (b.dataset.action === 'plus' ? 1 : -1))); document.querySelectorAll('.remove').forEach(b => b.onclick = () => remove(b.dataset.id)); } async function change(id, quantity) { if (quantity < 1) return remove(id); await fetch('/api/cart/items/' + id, { method: 'PUT', headers, body: JSON.stringify({ quantity }) }); load() } async function remove(id) { await fetch('/api/cart/items/' + id, { method: 'DELETE', headers }); load() } document.querySelector('#clearCart').onclick = async () => { await fetch('/api/cart', { method: 'DELETE', headers }); load() }; load();</script>
+    <script>
+        const csrf = document.querySelector('meta[name="_csrf"]')?.content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrf && csrfHeader) headers[csrfHeader] = csrf;
+
+        const money = value => `R${Number(value || 0).toFixed(2)}`;
+        const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g,
+            character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+        let cartBusy = false;
+
+        function showCartError(message) {
+            const error = document.querySelector('#cartError');
+            error.textContent = message;
+            error.classList.remove('d-none');
+        }
+
+        function setCartBusy(busy) {
+            cartBusy = busy;
+            document.querySelectorAll('.cart-action-button, .quantity-control button')
+                .forEach(button => {
+                    button.disabled = busy;
+                    if (button.tagName === 'A') {
+                        button.classList.toggle('disabled', busy);
+                        button.setAttribute('aria-disabled', String(busy));
+                        button.tabIndex = busy ? -1 : 0;
+                    }
+                });
+        }
+
+        async function loadCart() {
+            const response = await fetch('/api/cart');
+            if (!response.ok) throw new Error('Unable to load your cart. Please refresh the page.');
+
+            const cart = await response.json();
+            const lines = document.querySelector('#cartLines');
+            lines.innerHTML = cart.items.map(item => {
+                const image = item.imageUrl
+                    ? `<img class="cart-item-image" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.itemName)}" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div class="cart-item-placeholder" hidden aria-hidden="true"><i class="bi bi-egg-fried"></i></div>`
+                    : '<div class="cart-item-placeholder" aria-hidden="true"><i class="bi bi-egg-fried"></i></div>';
+                const description = item.description
+                    ? `<p class="cart-item-description">${escapeHtml(item.description)}</p>`
+                    : '';
+                return `<article class="cart-line">
+                    <div class="cart-item-main">
+                        ${image}
+                        <div class="cart-item-details">
+                            <h3>${escapeHtml(item.itemName)}</h3>
+                            ${description}
+                            <span class="cart-item-price">${money(item.price)} each</span>
+                            <button type="button" class="cart-action-button cart-remove" data-id="${escapeHtml(item.menuItemId)}">
+                                <i class="bi bi-trash3"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                    <div class="cart-item-controls">
+                        <div class="quantity-control" aria-label="Quantity">
+                            <button type="button" data-action="minus" data-id="${escapeHtml(item.menuItemId)}" data-qty="${Number(item.quantity)}" aria-label="Decrease quantity">−</button>
+                            <span>${Number(item.quantity)}</span>
+                            <button type="button" data-action="plus" data-id="${escapeHtml(item.menuItemId)}" data-qty="${Number(item.quantity)}" aria-label="Increase quantity">+</button>
+                        </div>
+                        <div class="cart-item-subtotal">
+                            <span>Subtotal</span>
+                            <strong>${money(item.subtotal)}</strong>
+                        </div>
+                    </div>
+                </article>`;
+            }).join('');
+
+            document.querySelector('#cartTotal').textContent = money(cart.totalPrice);
+            document.querySelector('#emptyCart').classList.toggle('d-none', cart.items.length > 0);
+            document.querySelector('#checkoutLink').classList.toggle('d-none', cart.items.length === 0);
+            document.querySelector('#clearCart').classList.toggle('d-none', cart.items.length === 0);
+            document.querySelectorAll('#cartCount, #cartMegaCount')
+                .forEach(element => element.textContent = cart.itemCount);
+            document.querySelector('#cartError').classList.add('d-none');
+        }
+
+        async function updateCart(url, method, body) {
+            if (cartBusy) return;
+            setCartBusy(true);
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers,
+                    ...(body ? { body: JSON.stringify(body) } : {})
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || 'Unable to update your cart.');
+                await loadCart();
+            } catch (error) {
+                showCartError(error.message || 'Unable to update your cart. Please try again.');
+            } finally {
+                setCartBusy(false);
+            }
+        }
+
+        document.querySelector('#cartLines').addEventListener('click', event => {
+            const button = event.target.closest('button');
+            if (!button || cartBusy) return;
+
+            const id = button.dataset.id;
+            if (button.dataset.action) {
+                const quantity = Number(button.dataset.qty) + (button.dataset.action === 'plus' ? 1 : -1);
+                if (quantity < 1) {
+                    updateCart(`/api/cart/items/${id}`, 'DELETE');
+                } else {
+                    updateCart(`/api/cart/items/${id}`, 'PUT', { quantity });
+                }
+            } else if (button.classList.contains('cart-remove')) {
+                updateCart(`/api/cart/items/${id}`, 'DELETE');
+            }
+        });
+
+        document.querySelector('#clearCart').addEventListener('click', () => {
+            updateCart('/api/cart', 'DELETE');
+        });
+
+        loadCart().catch(error => showCartError(error.message));
+    </script>
 </body>
 
 </html>

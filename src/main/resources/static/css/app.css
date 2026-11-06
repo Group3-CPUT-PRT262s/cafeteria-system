@@ -30,6 +30,12 @@ body {
     flex-direction: column;
 }
 
+.cc-layout {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
 /* ── Navbar ──────────────────────────────── */
 .cc-navbar {
     position: sticky;
@@ -113,6 +119,8 @@ body {
     width:            32px;
     height:           32px;
     border-radius:    50%;
+    overflow:         hidden;
+    flex:             0 0 32px;
     background:       rgba(255,255,255,0.2);
     display:          flex;
     align-items:      center;
@@ -120,6 +128,13 @@ body {
     font-weight:      700;
     font-size:        0.85rem;
     color:            #fff;
+}
+
+.user-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 /* Dropdown */
@@ -191,11 +206,25 @@ body {
 
 /* ── Footer ──────────────────────────────── */
 .cc-footer {
-    background: rgba(255, 255, 255, 0.86);
-    border-top: 1px solid rgba(226, 232, 240, 0.8);
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    background: #D1F5FF;
+    border-top: 1px solid rgba(42, 43, 42, 0.12);
     padding: 1rem 0;
-    margin-top: auto;
-    backdrop-filter: blur(8px);
+}
+
+.cc-footer .text-muted {
+    color: var(--cc-navy) !important;
+}
+
+@media (max-width: 575px) {
+    .cc-footer .container-fluid > .d-flex {
+        flex-direction: column;
+        gap: .35rem;
+        text-align: center;
+    }
 }
 
 /* ── Page header ─────────────────────────── */

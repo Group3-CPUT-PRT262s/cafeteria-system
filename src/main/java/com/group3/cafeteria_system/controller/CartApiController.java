@@ -72,6 +72,8 @@ public class CartApiController {
                 Map<String, Object> line = new LinkedHashMap<>();
                 line.put("menuItemId",  item.getMenuItemId());
                 line.put("itemName",    item.getItemName());
+                line.put("description", item.getDescription());
+                line.put("imageUrl",    item.getImageUrl());
                 line.put("price",       item.getPrice());
                 line.put("status",      item.getStatus());
                 line.put("quantity",    qty);
