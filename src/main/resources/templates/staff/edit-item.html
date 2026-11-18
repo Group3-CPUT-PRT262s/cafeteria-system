@@ -165,6 +165,12 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label" for="maxOrderQuantity">Maximum quantity per order</label>
+                        <input class="form-control" id="maxOrderQuantity" type="number" min="1"
+                               th:value="${item.maxOrderQuantity}" required>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label" for="image">Item image</label>
                         <div class="mb-2" th:if="${item.imageUrl != null}">
                             <img th:src="${item.imageUrl}" alt="Current menu item"
@@ -208,6 +214,7 @@
         const categoryId = document.getElementById('categoryId')
             .value;
         const status     = document.getElementById('status').value;
+        const maxOrderQuantity = document.getElementById('maxOrderQuantity').value;
         const csrfToken  = document.querySelector('meta[name="_csrf"]').content;
         const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
@@ -230,6 +237,7 @@
         formData.append('price', price);
         formData.append('categoryId', categoryId);
         formData.append('status', status);
+        formData.append('maxOrderQuantity', maxOrderQuantity);
         const image = document.getElementById('image').files[0];
         if (image) formData.append('image', image);
 

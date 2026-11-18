@@ -76,6 +76,8 @@ public class CartApiController {
                 line.put("imageUrl",    item.getImageUrl());
                 line.put("price",       item.getPrice());
                 line.put("status",      item.getStatus());
+                line.put("availableQuantity", item.getAvailableQuantity());
+                line.put("maxOrderQuantity", item.getMaxOrderQuantity());
                 line.put("quantity",    qty);
                 line.put("subtotal",    subtotal);
                 cartItems.add(line);
@@ -109,11 +111,16 @@ public class CartApiController {
             @RequestBody Map<String, Object> body,
             HttpSession session) {
 
-        Long menuItemId = Long.valueOf(
-                body.get("menuItemId").toString());
-        int quantity = body.containsKey("quantity")
-                ? Integer.parseInt(body.get("quantity").toString())
-                : 1;
+        Long menuItemId;
+        int quantity;
+        try {
+            menuItemId = Long.valueOf(body.get("menuItemId").toString());
+            quantity = body.containsKey("quantity")
+                    ? Integer.parseInt(body.get("quantity").toString()) : 1;
+        } catch (RuntimeException exception) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error", "message", "A valid menu item and quantity are required."));
+        }
 
         if (quantity < 1) {
             return ResponseEntity.badRequest()
@@ -137,7 +144,19 @@ public class CartApiController {
 
         // Add or increment in session cart
         Map<Long, Integer> cart = getCarts(session);
-        cart.merge(menuItemId, quantity, Integer::sum);
+        long requestedTotal = (long) cart.getOrDefault(menuItemId, 0) + quantity;
+        int maxQuantity = item.getMaxOrderQuantity() == null ? 10 : item.getMaxOrderQuantity();
+        if (requestedTotal > maxQuantity) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "You can order at most " + maxQuantity + " of " + item.getItemName() + "."));
+        }
+        if (requestedTotal > item.getAvailableQuantity()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Only " + item.getAvailableQuantity() + " of " + item.getItemName() + " are currently available."));
+        }
+        cart.put(menuItemId, (int) requestedTotal);
         session.setAttribute("cart", cart);
 
         Map<String, Object> response = new LinkedHashMap<>();
@@ -164,8 +183,13 @@ public class CartApiController {
             @RequestBody Map<String, Object> body,
             HttpSession session) {
 
-        int quantity = Integer.parseInt(
-                body.get("quantity").toString());
+        int quantity;
+        try {
+            quantity = Integer.parseInt(body.get("quantity").toString());
+        } catch (RuntimeException exception) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error", "message", "A valid quantity is required."));
+        }
 
         if (quantity < 1) {
             return ResponseEntity.badRequest()
@@ -178,6 +202,23 @@ public class CartApiController {
         Map<Long, Integer> cart = getCarts(session);
         if (!cart.containsKey(menuItemId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status", "error", "message", "Item not found in cart."));
+        }
+
+        MenuItem item = menuService.getItemById(menuItemId).orElse(null);
+        if (item == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "status", "error", "message", "Menu item not found."));
+        }
+        int maxQuantity = item.getMaxOrderQuantity() == null ? 10 : item.getMaxOrderQuantity();
+        if (quantity > maxQuantity) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "You can order at most " + maxQuantity + " of " + item.getItemName() + "."));
+        }
+        if (!item.isAvailable() || quantity > item.getAvailableQuantity()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", item.getItemName() + " does not have enough stock available."));
         }
 
         cart.put(menuItemId, quantity);

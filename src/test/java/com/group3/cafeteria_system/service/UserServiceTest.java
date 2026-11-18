@@ -30,11 +30,14 @@ class UserServiceTest {
     @Mock
     private PasswordResetTokenRepository tokenRepository;
 
+    @Mock
+    private WalletService walletService;
+
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, passwordEncoder, tokenRepository);
+        userService = new UserService(userRepository, passwordEncoder, tokenRepository, walletService);
     }
 
     @Test

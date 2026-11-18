@@ -3,6 +3,7 @@ package com.group3.cafeteria_system.service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 //import java.util.UUID;
 import java.security.SecureRandom;
 
@@ -23,14 +24,20 @@ import com.group3.cafeteria_system.repository.UserRepository;
 @Service
 public class UserService implements UserDetailsService {
 
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$",
+                    Pattern.CASE_INSENSITIVE);
     private final PasswordResetTokenRepository tokenRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final WalletService walletService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, PasswordResetTokenRepository tokenRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                       PasswordResetTokenRepository tokenRepository, WalletService walletService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenRepository = tokenRepository;
+        this.walletService = walletService;
     }
 
     /*
@@ -119,6 +126,7 @@ public class UserService implements UserDetailsService {
      *
      * The raw password is encoded before being stored.
      */
+    @Transactional
     public User createUser(
             String username,
             String rawPassword,
@@ -133,20 +141,21 @@ public class UserService implements UserDetailsService {
         String normalizedEmail =
                 normalizeEmail(email);
 
-        if (normalizedUsername.isBlank()) {
-            throw new IllegalArgumentException("Username is required.");
+        if (!normalizedUsername.matches("^[a-zA-Z0-9_]{3,20}$")) {
+            throw new IllegalArgumentException("Username must be 3-20 characters and can only contain letters, numbers, and underscores.");
         }
 
-        if (rawPassword == null || rawPassword.isBlank()) {
-            throw new IllegalArgumentException("Password is required.");
+        if (rawPassword == null || rawPassword.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters.");
         }
 
-        if (normalizedEmail.isBlank() || !normalizedEmail.contains("@")) {
+        if (!isValidEmail(normalizedEmail)) {
             throw new IllegalArgumentException("A valid email address is required.");
         }
 
-        if (role == null || role.isBlank()) {
-            throw new IllegalArgumentException("Role is required.");
+        String normalizedRole = role == null ? "" : role.trim().toUpperCase();
+        if (!List.of("STUDENT", "STAFF", "ADMIN").contains(normalizedRole)) {
+            throw new IllegalArgumentException("Role must be STUDENT, STAFF, or ADMIN.");
         }
 
         if (userRepository.existsByUsername(normalizedUsername)) {
@@ -168,9 +177,11 @@ public class UserService implements UserDetailsService {
         user.setFirstName(firstName == null ? "" : firstName.trim());
         user.setLastName(lastName == null ? "" : lastName.trim());
         user.setEmail(normalizedEmail);
-        user.setRole(role.toUpperCase());
+        user.setRole(normalizedRole);
 
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        walletService.initializeWallet(saved.getUserId());
+        return saved;
     }
 
     // ---------------------------------------------------------
@@ -184,6 +195,7 @@ public class UserService implements UserDetailsService {
      * The role should be assigned by the backend rather
      * than accepted from the registration form.
      */
+    @Transactional
     public User registerUser(
             String username,
             String rawPassword,
@@ -198,6 +210,19 @@ public class UserService implements UserDetailsService {
         String normalizedEmail =
                 normalizeEmail(email);
 
+        if (!normalizedUsername.matches("^[a-zA-Z0-9_]{3,20}$")) {
+            throw new IllegalArgumentException("Username must be 3-20 characters and can only contain letters, numbers, and underscores.");
+        }
+        if (rawPassword == null || rawPassword.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters.");
+        }
+        if (!isValidEmail(normalizedEmail)) {
+            throw new IllegalArgumentException("A valid email address is required.");
+        }
+        String normalizedRole = role == null ? "" : role.trim().toUpperCase();
+        if (!List.of("STUDENT", "STAFF", "ADMIN").contains(normalizedRole)) {
+            throw new IllegalArgumentException("Role must be STUDENT, STAFF, or ADMIN.");
+        }
 
         // Check whether username is already registered
         if (userRepository.existsByUsername(
@@ -234,11 +259,11 @@ public class UserService implements UserDetailsService {
 
         user.setEmail(normalizedEmail);
 
-        user.setRole(
-                role.toUpperCase()
-        );
+        user.setRole(normalizedRole);
 
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        walletService.initializeWallet(saved.getUserId());
+        return saved;
     }
 
 
@@ -263,7 +288,7 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new RuntimeException("User not found."));
 
         String normalizedEmail = normalizeEmail(email);
-        if (normalizedEmail.isBlank() || !normalizedEmail.contains("@")) {
+        if (!isValidEmail(normalizedEmail)) {
             throw new IllegalArgumentException("A valid email address is required.");
         }
 
@@ -280,6 +305,48 @@ public class UserService implements UserDetailsService {
             user.setProfilePictureUrl(profilePictureUrl);
         }
         return userRepository.save(user);
+    }
+
+    @Transactional
+    public User registerVerifiedUser(String username, String passwordHash,
+                                     String firstName, String lastName, String email) {
+        String normalizedUsername = normalizeUsername(username);
+        String normalizedEmail = normalizeEmail(email);
+        if (!normalizedUsername.matches("^[a-zA-Z0-9_]{3,20}$")) {
+            throw new IllegalArgumentException("Username must be 3-20 characters and can only contain letters, numbers, and underscores.");
+        }
+        if (passwordHash == null || passwordHash.isBlank()) {
+            throw new IllegalArgumentException("Password is required.");
+        }
+        if (!isValidEmail(normalizedEmail)) {
+            throw new IllegalArgumentException("A valid email address is required.");
+        }
+        if (userRepository.existsByUsername(normalizedUsername)) {
+            throw new IllegalArgumentException("Username already taken. Please choose another one.");
+        }
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new IllegalArgumentException("Email already registered.");
+        }
+
+        User user = new User();
+        user.setUsername(normalizedUsername);
+        user.setPasswordHash(passwordHash);
+        user.setFirstName(firstName == null ? "" : firstName.trim());
+        user.setLastName(lastName == null ? "" : lastName.trim());
+        user.setEmail(normalizedEmail);
+        user.setRole("STUDENT");
+        user.setWalletBalance(0.0);
+        User saved = userRepository.save(user);
+        walletService.initializeWallet(saved.getUserId());
+        return saved;
+    }
+
+    public boolean emailExists(String email) {
+        return userRepository.existsByEmail(normalizeEmail(email));
+    }
+
+    private boolean isValidEmail(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email).matches();
     }
 
     // ---------------------------------------------------------
@@ -459,7 +526,8 @@ public class UserService implements UserDetailsService {
                     "Administrator accounts cannot be deleted from the profile page.");
         }
 
+        user.setAccountStatus("INACTIVE");
+        userRepository.save(user);
         tokenRepository.deleteByUserId(userId);
-        userRepository.delete(user);
     }
 }

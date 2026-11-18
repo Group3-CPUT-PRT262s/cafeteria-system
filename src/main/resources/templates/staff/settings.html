@@ -161,7 +161,7 @@
                     <thead>
                     <tr>
                         <th>ID</th><th>User</th><th>Username</th><th>Email</th>
-                        <th>Role</th><th>Account status</th><th>Registered</th>
+                        <th>Role</th><th>Account status</th><th>Registered</th><th>Actions</th>
                     </tr>
                     </thead>
                     <tbody id="usersList">
@@ -201,6 +201,14 @@
                                 <option value="SUSPENDED" th:selected="${user.accountStatus == 'SUSPENDED'}">SUSPENDED</option>
                             </select></td>
                         <td th:text="${user.createdAt == null ? '—' : #temporals.format(user.createdAt, 'dd MMM yyyy')}"></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" type="button"
+                                    th:attr="data-deactivate-user=${user.userId},
+                                             data-user-name=${user.displayName}"
+                                    th:disabled="${user.accountStatus != 'ACTIVE'}">
+                                Deactivate
+                            </button>
+                        </td>
                     </tr>
                     </tbody>
                 </table>
@@ -380,6 +388,13 @@
             select.value = oldStatus;
             showToast(error.message, true);
         }
+
+        async function deactivateUser(userId, name) {
+            if (!confirm(`Deactivate ${name}? Their orders and wallet records will be retained.`)) return;
+            const result = await adminRequest(`/api/staff/users/${userId}`, 'DELETE');
+            showToast(result.message);
+            location.reload();
+        }
     }
 
     function createUser() {
@@ -442,6 +457,12 @@
             toggleSlot(Number(toggleButton.dataset.toggleSlotId), toggleButton));
         if (deleteButton) runAdminAction(() =>
             deleteSlot(Number(deleteButton.dataset.deleteSlotId)));
+    });
+
+    document.getElementById('usersList').addEventListener('click', event => {
+        const button = event.target.closest('[data-deactivate-user]');
+        if (button) runAdminAction(() =>
+            deactivateUser(Number(button.dataset.deactivateUser), button.dataset.userName));
     });
 
     function filterUsers() {

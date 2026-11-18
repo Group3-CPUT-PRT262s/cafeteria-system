@@ -55,7 +55,9 @@ public class SecurityConfig {
                                 "/",
                                 "/login",
                                 "/register",
+                                "/verify-registration",
                                 "/forgot-password",
+                                "/verify-reset-code",
                                 "/reset-password",
                                 "/api/auth/**",
                                 "/api/menu/**",
@@ -75,6 +77,8 @@ public class SecurityConfig {
                                 "/confirmation",
                                 "/checkout",
                                 "/customer/history",
+                                "/wallet",
+                                "/wallet/**",
                                 "/orders",
                                 "/orders/**",
                                 "/payment"

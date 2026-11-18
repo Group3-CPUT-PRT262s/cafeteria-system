@@ -163,6 +163,17 @@
                         </select>
                     </div>
 
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label" for="initialStock">Initial stock</label>
+                            <input class="form-control" id="initialStock" type="number" min="0" value="0" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label" for="maxOrderQuantity">Maximum per order</label>
+                            <input class="form-control" id="maxOrderQuantity" type="number" min="1" value="10" required>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label" for="image">Item image</label>
                         <input class="form-control" type="file" id="image"
@@ -199,6 +210,8 @@
         const price = document.getElementById('price').value;
         const categoryId = document.getElementById('categoryId').value;
         const status = document.getElementById('status').value;
+        const initialStock = document.getElementById('initialStock').value;
+        const maxOrderQuantity = document.getElementById('maxOrderQuantity').value;
         const csrfToken = document.querySelector('meta[name="_csrf"]').content;
         const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
@@ -226,6 +239,8 @@
         formData.append('price', price);
         formData.append('categoryId', categoryId);
         formData.append('status', status);
+        formData.append('initialStock', initialStock);
+        formData.append('maxOrderQuantity', maxOrderQuantity);
         const image = document.getElementById('image').files[0];
         if (image) formData.append('image', image);
 

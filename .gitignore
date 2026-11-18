@@ -21,6 +21,7 @@ build/
 # ── VS Code ───────────────────────────────────
 .vscode/
 .env
+.agents
 
 # ── H2 Database files ─────────────────────────
 # Each developer has their own local copy
@@ -53,3 +54,6 @@ Desktop.ini
 HELP.md
 mvnw
 mvnw.cmd
+
+# ── email smtp ─────────────────────────────────────
+src/main/resources/application.properties

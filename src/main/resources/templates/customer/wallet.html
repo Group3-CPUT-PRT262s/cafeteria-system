@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{base :: head}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/customer.css}">
+    <title th:text="${pageTitle}">Campus Wallet</title>
+</head>
+<body>
+<th:block th:replace="~{base :: layout(~{::content})}">
+    <th:block th:fragment="content">
+        <section class="customer-page">
+            <header class="checkout-heading">
+                <div>
+                    <div class="customer-kicker text-dark">Your account</div>
+                    <h1>Campus wallet</h1>
+                    <p>Load demonstration credits and review every wallet transaction.</p>
+                </div>
+            </header>
+            <div class="alert alert-success" role="status" th:if="${successMessage}"
+                 th:text="${successMessage}"></div>
+            <div class="alert alert-danger" role="alert" th:if="${errorMessage}"
+                 th:text="${errorMessage}"></div>
+
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <section class="customer-card h-100">
+                        <span class="profile-section-kicker">Available balance</span>
+                        <h2 class="display-6 fw-bold"
+                            th:text="'R' + ${#numbers.formatDecimal(walletBalance, 1, 'COMMA', 2, 'POINT')}">R0.00</h2>
+                        <p class="text-muted">Credits are used for cafeteria checkout. No external payment is taken.</p>
+                        <form th:action="@{/wallet/load/review}" method="post" class="mt-4">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <label for="walletAmount" class="form-label">Amount to load</label>
+                            <select class="form-select mb-3" id="walletAmount" name="amount" required>
+                                <option th:each="amount : ${walletTopUpAmounts}" th:value="${amount}"
+                                        th:text="'R' + ${#numbers.formatDecimal(amount, 1, 'COMMA', 2, 'POINT')}"></option>
+                            </select>
+                            <span class="form-label d-block">Payment method</span>
+                            <div class="d-flex gap-3 mb-4">
+                                <label class="form-check">
+                                    <input class="form-check-input" type="radio" name="paymentMethod"
+                                           value="CARD" required>
+                                    <span class="form-check-label">Credit/debit card</span>
+                                </label>
+                                <label class="form-check">
+                                    <input class="form-check-input" type="radio" name="paymentMethod"
+                                           value="BANK" required>
+                                    <span class="form-check-label">Bank account</span>
+                                </label>
+                            </div>
+                            <p class="small text-muted">For this demo, do not enter or store card numbers, CVVs, or bank credentials.</p>
+                            <button class="btn btn-success w-100" type="submit">Review wallet load</button>
+                        </form>
+                    </section>
+                </div>
+                <div class="col-lg-7">
+                    <section class="customer-card h-100">
+                        <span class="profile-section-kicker">Auditable activity</span>
+                        <h2>Transaction history</h2>
+                        <div class="table-responsive mt-3">
+                            <table class="table align-middle">
+                                <thead>
+                                <tr><th>Date</th><th>Reference</th><th>Description</th><th class="text-end">Amount</th><th class="text-end">Balance</th></tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="transaction : ${walletTransactions}">
+                                    <td th:text="${#temporals.format(transaction.createdAt, 'dd MMM yyyy HH:mm')}"></td>
+                                    <td th:text="${transaction.reference}"></td>
+                                    <td>
+                                        <span th:text="${transaction.description}"></span>
+                                        <span class="badge text-bg-secondary" th:if="${transaction.transactionStatus != 'COMPLETED'}"
+                                              th:text="${transaction.transactionStatus}"></span>
+                                    </td>
+                                    <td class="text-end"
+                                        th:text="${transaction.amount >= 0 ? '+' : ''} + 'R' + ${#numbers.formatDecimal(transaction.amount, 1, 'COMMA', 2, 'POINT')}"></td>
+                                    <td class="text-end"
+                                        th:text="'R' + ${#numbers.formatDecimal(transaction.balanceAfter, 1, 'COMMA', 2, 'POINT')}"></td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(walletTransactions)}">
+                                    <td colspan="5" class="text-center text-muted py-4">No wallet transactions yet.</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </section>
+    </th:block>
+</th:block>
+</body>
+</html>

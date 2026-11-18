@@ -28,7 +28,6 @@ import com.group3.cafeteria_system.model.CustomerOrder;
 import com.group3.cafeteria_system.model.MenuItem;
 import com.group3.cafeteria_system.model.User;
 import com.group3.cafeteria_system.model.OrderItem;
-import com.group3.cafeteria_system.repository.TimeSlotRepository;
 import com.group3.cafeteria_system.service.CategoryService;
 import com.group3.cafeteria_system.service.MenuService;
 import com.group3.cafeteria_system.service.OrderService;
@@ -36,6 +35,7 @@ import com.group3.cafeteria_system.service.UserService;
 import com.group3.cafeteria_system.service.WalletService;
 import com.group3.cafeteria_system.service.CheckoutService;
 import com.group3.cafeteria_system.service.ImageStorageService;
+import com.group3.cafeteria_system.service.TimeSlotService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -48,7 +48,7 @@ public class CustomerController {
     private final OrderService orderService;
     private final UserService userService;
     private final CategoryService categoryService;
-    private final TimeSlotRepository timeSlotRepository;
+    private final TimeSlotService timeSlotService;
     private final CheckoutService checkoutService;
     private final WalletService walletService;
     private final ImageStorageService imageStorageService;
@@ -57,7 +57,7 @@ public class CustomerController {
                               OrderService orderService,
                               UserService userService,
                               CategoryService categoryService,
-                              TimeSlotRepository timeSlotRepository,
+                              TimeSlotService timeSlotService,
                               CheckoutService checkoutService,
                               WalletService walletService,
                               ImageStorageService imageStorageService) {
@@ -65,7 +65,7 @@ public class CustomerController {
         this.orderService = orderService;
         this.userService = userService;
         this.categoryService = categoryService;
-        this.timeSlotRepository = timeSlotRepository;
+        this.timeSlotService = timeSlotService;
         this.checkoutService = checkoutService;
         this.walletService = walletService;
         this.imageStorageService = imageStorageService;
@@ -80,7 +80,7 @@ public class CustomerController {
         model.addAttribute("items", items);
         model.addAttribute("menuItems", items);
         model.addAttribute("categories", categoryService.getAllCategories());
-        model.addAttribute("timeSlots", timeSlotRepository.findByIsActiveTrue());
+        model.addAttribute("timeSlots", timeSlotService.getAvailableTimeSlots());
         model.addAttribute("error", error);
         model.addAttribute("success", success);
         model.addAttribute("activePage", "menu");
@@ -131,7 +131,7 @@ public class CustomerController {
         }
 
         model.addAttribute("cart", cart);
-        model.addAttribute("timeSlots", timeSlotRepository.findByIsActiveTrue());
+        model.addAttribute("timeSlots", timeSlotService.getAvailableTimeSlots());
         model.addAttribute("walletBalance", walletService.getBalance(user.getUserId()));
         model.addAttribute("activePage", "cart");
         model.addAttribute("pageTitle", "Checkout | Campus Cafeteria");
@@ -210,6 +210,7 @@ public class CustomerController {
         model.addAttribute("orders", orders);
         model.addAttribute("walletBalance", walletService.getBalance(user.getUserId()));
         model.addAttribute("walletTopUpAmounts", WalletService.DEMO_TOP_UP_AMOUNTS);
+        model.addAttribute("walletTransactions", walletService.getTransactions(user.getUserId()));
         model.addAttribute("staffProfile", user.isStaff());
         model.addAttribute("orderHistoryUrl",
                 user.isStaff() ? "/staff/orders" : "/customer/history");
@@ -258,24 +259,133 @@ public class CustomerController {
         }
     }
 
-    @PostMapping("/profile/wallet/top-up")
-    public String topUpWallet(@RequestParam double amount,
-                              Authentication authentication,
-                              RedirectAttributes redirectAttributes) {
+    @GetMapping("/wallet")
+    public String wallet(Authentication authentication, Model model,
+                         @RequestParam(required = false) String success) {
         User user = currentUser(authentication);
         if (user == null) {
             return "redirect:/login";
         }
+        model.addAttribute("walletBalance", walletService.getBalance(user.getUserId()));
+        model.addAttribute("walletTopUpAmounts", WalletService.DEMO_TOP_UP_AMOUNTS);
+        model.addAttribute("walletTransactions", walletService.getTransactions(user.getUserId()));
+        model.addAttribute("success", success);
+        model.addAttribute("activePage", "profile");
+        model.addAttribute("pageTitle", "Campus Wallet | Campus Cafeteria");
+        return "customer/wallet";
+    }
 
+    @PostMapping("/wallet/load/review")
+    public String reviewWalletLoad(@RequestParam double amount,
+                                   @RequestParam String paymentMethod,
+                                   Authentication authentication,
+                                   HttpSession session,
+                                   RedirectAttributes redirectAttributes,
+                                   Model model) {
+        User user = currentUser(authentication);
+        if (user == null) {
+            return "redirect:/login";
+        }
+        if (!WalletService.DEMO_TOP_UP_AMOUNTS.contains(amount)
+                || !List.of("CARD", "BANK").contains(paymentMethod)) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Choose a valid amount and payment method.");
+            return "redirect:/wallet";
+        }
+        session.setAttribute("walletLoadUserId", user.getUserId());
+        session.setAttribute("walletLoadAmount", amount);
+        session.setAttribute("walletLoadMethod", paymentMethod);
+        session.setAttribute("walletLoadKey", java.util.UUID.randomUUID().toString());
+        model.addAttribute("amount", amount);
+        model.addAttribute("paymentMethod", paymentMethod);
+        model.addAttribute("pageTitle", "Verify wallet load | Campus Cafeteria");
+        return "customer/wallet-review";
+    }
+
+    @PostMapping("/wallet/load/verify")
+    public String verifyWalletLoad(Authentication authentication,
+                                   HttpSession session,
+                                   RedirectAttributes redirectAttributes) {
+        User user = currentUser(authentication);
+        if (user == null) {
+            return "redirect:/login";
+        }
+        Object pendingUserId = session.getAttribute("walletLoadUserId");
+        Object amount = session.getAttribute("walletLoadAmount");
+        Object method = session.getAttribute("walletLoadMethod");
+        Object key = session.getAttribute("walletLoadKey");
+        if (!user.getUserId().equals(pendingUserId)
+                || !(amount instanceof Number)
+                || !(method instanceof String)
+                || !(key instanceof String)) {
+            clearWalletLoad(session);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "No pending wallet payment was found. Please start again.");
+            return "redirect:/wallet";
+        }
         try {
-            double balance = walletService.topUp(user.getUserId(), amount);
+            double balance = walletService.loadCredits(user.getUserId(),
+                    ((Number) amount).doubleValue(), (String) method, (String) key);
             redirectAttributes.addFlashAttribute("successMessage",
-                    "Demo credits added. Your new wallet balance is R"
+                    "Simulated payment approved. Your wallet balance is R"
                             + String.format("%.2f", balance) + ".");
+            clearWalletLoad(session);
         } catch (RuntimeException exception) {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
         }
-        return "redirect:/profile";
+        return "redirect:/wallet";
+    }
+
+    @PostMapping("/wallet/load/cancel")
+    public String cancelWalletLoad(Authentication authentication, HttpSession session) {
+        User user = currentUser(authentication);
+        Object pendingUserId = session.getAttribute("walletLoadUserId");
+        Object amount = session.getAttribute("walletLoadAmount");
+        Object method = session.getAttribute("walletLoadMethod");
+        Object key = session.getAttribute("walletLoadKey");
+        if (user != null && pendingUserId instanceof Long userId
+                && user.getUserId().equals(userId) && amount instanceof Number number
+                && method instanceof String paymentMethod && key instanceof String idempotencyKey) {
+            walletService.recordTopUpOutcome(userId, number.doubleValue(), paymentMethod,
+                    idempotencyKey, "CANCELLED");
+        }
+        clearWalletLoad(session);
+        return "redirect:/wallet";
+    }
+
+    @PostMapping("/wallet/load/fail")
+    public String failWalletLoad(Authentication authentication, HttpSession session,
+                                 RedirectAttributes redirectAttributes) {
+        User user = currentUser(authentication);
+        Object pendingUserId = session.getAttribute("walletLoadUserId");
+        Object amount = session.getAttribute("walletLoadAmount");
+        Object method = session.getAttribute("walletLoadMethod");
+        Object key = session.getAttribute("walletLoadKey");
+        if (user == null) {
+            return "redirect:/login";
+        }
+        if (!user.getUserId().equals(pendingUserId)
+                || !(amount instanceof Number)
+                || !(method instanceof String)
+                || !(key instanceof String)) {
+            clearWalletLoad(session);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "No pending wallet payment was found. Please start again.");
+            return "redirect:/wallet";
+        }
+        walletService.recordTopUpOutcome(user.getUserId(), ((Number) amount).doubleValue(),
+                (String) method, (String) key, "FAILED");
+        clearWalletLoad(session);
+        redirectAttributes.addFlashAttribute("errorMessage",
+                "The simulated bank declined the payment. Your wallet was not credited.");
+        return "redirect:/wallet";
+    }
+
+    private void clearWalletLoad(HttpSession session) {
+        session.removeAttribute("walletLoadUserId");
+        session.removeAttribute("walletLoadAmount");
+        session.removeAttribute("walletLoadMethod");
+        session.removeAttribute("walletLoadKey");
     }
 
     @PostMapping("/profile/delete-account")

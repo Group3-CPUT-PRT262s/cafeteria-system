@@ -3,9 +3,9 @@ package com.group3.cafeteria_system.controller;
 import com.group3.cafeteria_system.model.Category;
 import com.group3.cafeteria_system.model.MenuItem;
 import com.group3.cafeteria_system.model.TimeSlot;
-import com.group3.cafeteria_system.repository.TimeSlotRepository;
 import com.group3.cafeteria_system.service.CategoryService;
 import com.group3.cafeteria_system.service.MenuService;
+import com.group3.cafeteria_system.service.TimeSlotService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,12 +16,13 @@ public class MenuApiController {
 
     private final MenuService menuService;
     private final CategoryService categoryService;
-    private final TimeSlotRepository timeSlotRepository;
+    private final TimeSlotService timeSlotService;
 
-    public MenuApiController(MenuService menuService, CategoryService categoryService, TimeSlotRepository timeSlotRepository) {
+    public MenuApiController(MenuService menuService, CategoryService categoryService,
+                             TimeSlotService timeSlotService) {
         this.menuService = menuService;
         this.categoryService = categoryService;
-        this.timeSlotRepository = timeSlotRepository;
+        this.timeSlotService = timeSlotService;
     }
 
     // ─────────────────────────────────────────
@@ -102,7 +103,7 @@ public class MenuApiController {
     public ResponseEntity<List<TimeSlot>> getTimeSlots() {
 
         // READ active slots from DB
-        List<TimeSlot> slots = timeSlotRepository.findByIsActiveTrue();
+        List<TimeSlot> slots = timeSlotService.getAvailableTimeSlots();
         return ResponseEntity.ok(slots);
     }
 }

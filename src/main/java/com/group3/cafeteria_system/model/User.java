@@ -1,7 +1,14 @@
 package com.group3.cafeteria_system.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "users")
@@ -34,7 +41,7 @@ public class User {
     private String role;
 
     @Column(name = "wallet_balance")
-    private Double walletBalance = 500.0;
+    private Double walletBalance = 0.0;
 
     @Column(name = "account_status")
     private String accountStatus = "ACTIVE";

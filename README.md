@@ -7,10 +7,9 @@ provides staff and administrators with web tools for fulfilment and cafeteria
 operations. It combines Thymeleaf-rendered pages with JSON endpoints used by
 browser JavaScript.
 
-> **Implementation note:** This README describes the source currently in this
-> repository. Some domain components, such as inventory and payments, are
-> intentionally demo-level or have no complete administration UI; these limits
-> are called out below.
+> **Implementation note:** Wallet top-ups use simulated bank approval and do
+> not connect to a real payment provider. Email verification and password reset
+> both use SMTP; local development is configured for Mailpit.
 
 ## Table of contents
 
@@ -51,18 +50,23 @@ are:
 
 ### Student features
 
-- Student registration and session-based login/logout.
+- Student registration with a one-time email ownership code and
+  session-based login/logout. Email verification is only part of registration;
+  it is not required again at login. Verification codes are hashed, expire
+  after 10 minutes, and are invalidated after five incorrect attempts.
 - Password reset through an emailed, one-time verification code. Codes expire
   after 10 minutes.
 - View active menu items, search the menu in the browser, and browse categories.
 - Add items to a session cart, change quantities, remove individual items, or
   clear the cart.
 - Submit an order with an active collection time slot.
+- View available stock and each item's maximum order quantity.
 - View personal order history and order details.
 - View and update personal details, upload an optional profile picture, and
-  delete the account.
-- Use a demo wallet. New users receive a starting balance of R500; the profile
-  page allows demo top-ups of R100, R250, or R500.
+  deactivate the account while preserving order and wallet history.
+- Use a demo wallet. New users receive R0.00 and can load R100, R250, or R500
+  through simulated card or bank verification. Wallet purchases, credits,
+  refunds, and opening balances appear in the transaction history.
 
 ### Staff features
 
@@ -72,34 +76,39 @@ are:
 - Mark an item on an order as sold out.
 - Add, edit, activate/deactivate, and change the availability status of menu
   items. Menu images can be uploaded when adding or editing an item.
+- Set initial stock and a per-order quantity limit, and restock items from the
+  menu-management screen.
 
 ### Administrator features
 
 - Access to staff functions, plus a settings page.
 - List and create users, change user roles (`STUDENT`, `STAFF`, `ADMIN`), and
   activate or deactivate accounts.
+- Deactivate accounts with confirmation; the current administrator and the
+  last active administrator are protected.
 - Create, rename, and delete menu categories (deletion is prevented while a
   category is assigned to menu items).
 - Create, edit, activate/deactivate, and delete collection time slots.
-- Set a maximum order capacity for a time slot. The application rejects
-  checkout when the number of existing orders for the slot reaches its
-  configured capacity.
+- Set a maximum order capacity for a time slot. Remaining capacity is shown at
+  checkout, and full slots cannot be selected.
 
 ### Implemented components with limitations
 
-- **Payments are simulated.** Checkout debits the application's demo wallet
-  and records a completed `WALLET` payment with a demo reference. There is no
-  external payment-provider integration.
-- **Inventory is partly implemented.** The `Inventory` entity and service
-  support stock deductions and restocking, and checkout deducts stock. Checkout
-  therefore expects an inventory record for each ordered menu item. There is no
-  staff-facing inventory management endpoint or screen in the current
-  controllers.
-- **Menu availability** uses the menu item's `Available`, `Low Stock`, and
-  `Sold Out` statuses. Staff can set these directly; order placement also
-  synchronizes status when inventory deductions are made.
-- **Order notifications** are not implemented. Email is used for password
-  reset, not order updates.
+- **Payments are simulated.** Wallet loads display a simulated bank
+  verification step, then update the real wallet balance and ledger. Checkout
+  debits the wallet and records a completed `WALLET` payment. No external
+  payment-provider integration exists, and the application never requests or
+  stores card or bank credentials.
+- **Inventory and capacity are transactional.** Checkout row-locks the selected
+  slot and item inventory, checks capacity/quantity/stock/wallet rules, and
+  reserves stock before committing the order. A cancellation releases stock
+  and slot capacity and refunds the wallet once; collection commits the
+  reservation without deducting stock a second time.
+- **Menu availability** shows available quantity and the configurable
+  per-order maximum. New menu items start with the stock configured by staff;
+  legacy items without an inventory row are initialized with zero stock.
+- **Order notifications** are not implemented. Email is used for registration
+  verification and password reset, not order updates.
 - The application has a staff dashboard with basic order and revenue metrics;
   it does not provide a dedicated sales-reporting module.
 
@@ -116,7 +125,7 @@ are:
 | Spring Data JPA and Hibernate | Repository-based data access and ORM schema updates. |
 | PostgreSQL | Relational application database; PostgreSQL JDBC driver is a runtime dependency. |
 | Spring Security | Form/session authentication, role-based authorization, CSRF protection, and password encoding. |
-| Spring Mail | Sends account password-reset codes over SMTP. |
+| Spring Mail / Mailpit | Sends registration verification and password-reset codes over local SMTP. |
 | Maven | Build and dependency management; the project includes Maven wrapper scripts. |
 | Spring Boot DevTools | Optional runtime development tooling. |
 | Spring Boot Actuator | Actuator dependency is present; no custom actuator configuration is defined in this project. |
@@ -141,7 +150,7 @@ flowchart LR
     Repositories[Spring Data JPA repositories]
     Database[(PostgreSQL)]
     Uploads[Uploaded image files]
-    SMTP[Configured SMTP server]
+    Mailpit[Mailpit SMTP]
 
     Browser -->|Page requests and JSON calls| MVC
     MVC -->|HTML views / JSON| Browser
@@ -149,7 +158,7 @@ flowchart LR
     Services --> Repositories
     Repositories --> Database
     Services -->|Menu/profile image storage| Uploads
-    Services -->|Password reset email| SMTP
+    Services -->|Verification and reset emails| Mailpit
 ```
 
 ### Layer responsibilities
@@ -216,7 +225,7 @@ Important source areas:
   and access-denied handling.
 - `config/AccountStatusFilter.java`: invalidates sessions if the user's
   account is no longer active or the user's role has changed.
-- `resources/application.properties`: database, SMTP, Hibernate, server,
+- `resources/application.properties`: database, email, Hibernate, server,
   upload, and multipart settings.
 - Uploaded images are stored outside `src/main/resources` in the configured
   upload directory (default `uploads/`).
@@ -235,13 +244,15 @@ schema file.
 |---|---|
 | `User` / `users` | Student, staff, and admin accounts; role, account status, wallet balance, and optional profile-picture URL. |
 | `Category` / `categories` | Unique menu category names. |
-| `MenuItem` / `menu_items` | Menu item details, category ID, price, availability status, active flag, and optional image URL. |
+| `MenuItem` / `menu_items` | Menu details, category ID, price, availability status, active flag, per-order maximum, and optional image URL. |
 | `CustomerOrder` / `customer_orders` | Order owner ID, collection-slot ID, total, status, and timestamp. |
 | `OrderItem` / `order_items` | Menu item ID, quantity, and unit price captured when the order was placed. |
 | `TimeSlot` / `time_slots` | Collection time, active flag, and maximum order count. |
-| `Inventory` / `inventory` | Stock quantity, reorder level, and unit for a menu item; `menu_item_id` is unique. |
+| `Inventory` / `inventory` | Available stock, reserved stock, reorder level, and unit for a menu item; `menu_item_id` is unique. |
 | `Payment` / `payments` | Payment amount, method, status, reference, and date; `order_id` is unique. |
+| `WalletLedgerEntry` / `wallet_ledger` | Signed wallet transactions, post-transaction balance, payment method, reference, status, and unique idempotency key. |
 | `PasswordResetToken` / `password_reset_tokens` | One-time reset code, associated user ID, expiry, and used flag. |
+| `RegistrationVerification` / `registration_verifications` | Hashed one-time email code, pending account data, expiry, and incorrect-attempt count. |
 
 ### Logical entity relationships
 
@@ -255,13 +266,18 @@ erDiagram
     MENU_ITEMS ||--o| INVENTORY : tracks
     CUSTOMER_ORDERS ||--o| PAYMENTS : paid_by
     USERS ||--o{ PASSWORD_RESET_TOKENS : receives
+    USERS ||--o{ WALLET_LEDGER : records
 ```
 
 The order header and its lines are stored separately. `order_items.unit_price`
 preserves the price at order time, and each line subtotal is calculated from
 that stored price and quantity. `customer_orders.order_status` starts as
 `Pending`. Users are assigned roles using a string field rather than a separate
-roles table.
+roles table. Hibernate's existing `ddl-auto=update` adds the per-item limit,
+reserved quantity, wallet ledger, and registration verification schema. On
+startup, missing legacy inventory rows are created with zero stock, and
+reserved quantities are reconciled from non-cancelled, non-collected orders.
+Back up existing data before first startup with the updated model.
 
 ## Roles and access control
 
@@ -288,11 +304,11 @@ routes to `STAFF` or `ADMIN`.
 flowchart TD
     A[Student browses active menu] --> B[Add items to session cart]
     B --> C[Choose an active collection time slot]
-    C --> D{Validate slot, capacity, and item availability}
+    C --> D{Lock and validate capacity, limits, stock, and wallet}
     D -->|Invalid| E[Show checkout error; keep cart]
     D -->|Valid| F[Create Pending order and order lines]
-    F --> G[Deduct inventory for each ordered item]
-    G --> H[Debit demo wallet and record completed demo payment]
+    F --> G[Reserve item stock]
+    G --> H[Debit wallet and record ledger/payment]
     H --> I[Clear cart and show order details]
     I --> J[Staff marks Prepared]
     J --> K[Staff marks Ready]
@@ -302,10 +318,11 @@ flowchart TD
 ```
 
 The checkout operation validates that the cart is not empty, the chosen time
-slot is active and below capacity, and each menu item is available. It then
-creates an order in `Pending`, saves its line items, deducts inventory, debits
-the student's wallet, and records a completed demo payment. These operations
-are coordinated by the transactional checkout service.
+slot is active and below order-count capacity, each item is active and within
+its configured quantity limit, enough inventory exists, and the wallet covers
+the total. Pessimistic row locks serialize checkout requests for the same slot,
+inventory, and wallet. The order, reservations, wallet debit/ledger entry, and
+demo payment are committed or rolled back together.
 
 Staff can move an order through these transitions:
 
@@ -319,7 +336,9 @@ Staff can move an order through these transitions:
 
 Supported forward transitions are `Pending → Prepared → Ready → Collected`.
 Orders may be cancelled from `Pending`, `Prepared`, or `Ready`. No live/push
-notification is sent when a status changes.
+notification is sent when a status changes. Cancellation releases the reserved
+stock, refunds the wallet once, and restores one unit of slot capacity;
+collection finalizes the reservation without deducting stock a second time.
 
 ## Routes and APIs
 
@@ -336,6 +355,7 @@ description of every request parameter or response field.
 | `GET` | `/login` | Login page. | Public |
 | `POST` | `/login` | Spring Security form login. | Public |
 | `GET`, `POST` | `/register` | Student registration page and form submission. | Public |
+| `GET`, `POST` | `/verify-registration` | Enter the emailed code and create the account. | Public |
 | `GET`, `POST` | `/forgot-password` | Request password reset. | Public |
 | `GET`, `POST` | `/verify-reset-code` | Verify reset code. | Public |
 | `GET`, `POST` | `/reset-password` | Set a new password after verification. | Public |
@@ -346,8 +366,9 @@ description of every request parameter or response field.
 | `GET` | `/customer/history`, `/orders` | View customer order history (`/orders` redirects). | `STUDENT` |
 | `GET` | `/orders/{id}` | View an order's details. | `STUDENT` (as enforced by route security) |
 | `GET`, `POST` | `/profile` | View and update profile, including optional picture upload. | Authenticated |
-| `POST` | `/profile/wallet/top-up` | Add one of the supported demo credit amounts. | Authenticated |
-| `POST` | `/profile/delete-account` | Delete the current account and log out. | Authenticated |
+| `GET` | `/wallet` | View wallet balance/history and start a simulated top-up. | `STUDENT` |
+| `POST` | `/wallet/load/review`, `/wallet/load/verify`, `/wallet/load/cancel`, `/wallet/load/fail` | Review and simulate approval, cancellation, or decline for a wallet load. | `STUDENT` |
+| `POST` | `/profile/delete-account` | Deactivate the current account and log out; history is retained. | Authenticated |
 
 ### JSON APIs
 
@@ -355,7 +376,8 @@ description of every request parameter or response field.
 |---|---|---|---|
 | `POST` | `/api/auth/login` | Authenticate and create a session. | Public |
 | `POST` | `/api/auth/logout` | Clear the API caller's session. | Public route; requires an existing session to log out |
-| `POST` | `/api/auth/register` | Register a `STUDENT` account. | Public |
+| `POST` | `/api/auth/register` | Start `STUDENT` registration and send a verification code. | Public |
+| `POST` | `/api/auth/register/verify` | Verify email ownership and create the account. | Public |
 | `POST` | `/api/auth/forgot-password` | Request a reset code by email. | Public |
 | `POST` | `/api/auth/reset-password` | Reset password with a valid code. | Public |
 | `GET` | `/api/menu`, `/api/menu/{id}` | Read active menu items or one menu item. | Public |
@@ -368,11 +390,12 @@ description of every request parameter or response field.
 | `PATCH` | `/api/staff/orders/{id}/status` | Change an order's status. | `STAFF`, `ADMIN` |
 | `PATCH` | `/api/staff/orders/{orderId}/items/{menuItemId}/out-of-stock` | Mark an ordered menu item sold out. | `STAFF`, `ADMIN` |
 | `POST` | `/api/staff/menu` | Create a menu item (JSON or multipart form; multipart supports image upload). | `STAFF`, `ADMIN` |
+| `POST` | `/api/staff/inventory/{menuItemId}/restock` | Add portions to available inventory. | `STAFF`, `ADMIN` |
 | `PUT`, `POST` | `/api/staff/menu/{id}` | Update a menu item (JSON `PUT` or multipart `POST`; multipart supports image replacement). | `STAFF`, `ADMIN` |
 | `PATCH` | `/api/staff/menu/{id}/status`, `/api/staff/menu/{id}/activate`, `/api/staff/menu/{id}/remove` | Change status or activate/deactivate a menu item. | `STAFF`, `ADMIN` |
 | `POST`, `PUT`, `DELETE` | `/api/staff/categories...` | Create, rename, or delete menu categories. | `ADMIN` |
 | `POST`, `PUT`, `PATCH`, `DELETE` | `/api/staff/time-slots...` | Manage collection slots, capacity, and activation. | `ADMIN` |
-| `GET`, `POST`, `PATCH` | `/api/staff/users...` | List/create users and update roles/account statuses. | `ADMIN` |
+| `GET`, `POST`, `PATCH`, `DELETE` | `/api/staff/users...` | List/create users and update roles/statuses; DELETE deactivates an account. | `ADMIN` |
 
 Spring Security's configured custom access-denied handler returns JSON
 `401`/`403` responses for restricted API requests.
@@ -387,8 +410,7 @@ Spring Security's configured custom access-denied handler returns JSON
 - Git.
 - Maven is optional when using the included Maven wrapper (`mvnw` or
   `mvnw.cmd`).
-- An SMTP account/configuration for password-reset email. The checked-in
-  configuration is set up for Gmail SMTP.
+- Mailpit running locally to capture registration and password-reset email.
 - An IDE such as IntelliJ IDEA, Eclipse, or VS Code is optional.
 
 ### Clone the repository
@@ -419,29 +441,26 @@ file. Keep a backup before using this setting with data that matters.
 
 ### Configure required values
 
-The application reads credentials from environment variables. Set them in the
-same terminal used to start the app (do not commit real credentials):
+The default email configuration connects to Mailpit's SMTP listener at
+`localhost:1025`. Mailpit's web inbox is usually available at
+<http://localhost:8025>. Start Mailpit before submitting registration or password
+reset requests. The sender defaults to `no-reply@cafeteria.local`; Mailpit
+accepts local test addresses without sender-domain verification.
 
 ```bash
 export DB_USERNAME="postgres"
 export DB_PASSWORD="your-local-postgres-password"
-export MAIL_USERNAME="your-smtp-account@example.com"
-export MAIL_APP_PASSWORD="your-smtp-app-password"
 ```
 
-`MAIL_APP_PASSWORD` is the SMTP application password configured for the Gmail
-account; it is not the Gmail account's ordinary login password. Password-reset
-email will not work until SMTP credentials are valid. The required mail
-properties are resolved during application startup, so configure them even if
-you do not plan to test password reset.
+Mailpit's default host and SMTP port are configurable with `MAIL_HOST` and
+`MAIL_PORT`. The application uses unauthenticated SMTP with STARTTLS disabled
+for the default local Mailpit setup. No Resend credentials are needed.
 
 On Windows PowerShell, use:
 
 ```powershell
 $env:DB_USERNAME = "postgres"
 $env:DB_PASSWORD = "your-local-postgres-password"
-$env:MAIL_USERNAME = "your-smtp-account@example.com"
-$env:MAIL_APP_PASSWORD = "your-smtp-app-password"
 ```
 
 ### Build, test, and run
@@ -481,10 +500,11 @@ initializer does not create menu categories, menu items, or inventory records.
 | `spring.datasource.url` | `jdbc:postgresql://localhost:5432/cafeteria_db` | PostgreSQL server, port, and database. |
 | `spring.datasource.username` | `DB_USERNAME` (defaults to `postgres`) | PostgreSQL login. |
 | `spring.datasource.password` | `DB_PASSWORD` | PostgreSQL password. |
-| `spring.mail.host` | `smtp.gmail.com` | SMTP server for password reset. |
-| `spring.mail.port` | `587` | SMTP submission port with STARTTLS. |
-| `spring.mail.username` | `MAIL_USERNAME` | SMTP sender account. |
-| `spring.mail.password` | `MAIL_APP_PASSWORD` | SMTP app password. |
+| `spring.mail.host` | `MAIL_HOST`, default `localhost` | SMTP server hostname (Mailpit by default). |
+| `spring.mail.port` | `MAIL_PORT`, default `1025` | SMTP server port (Mailpit's default SMTP port). |
+| `spring.mail.properties.mail.smtp.auth` | `MAIL_SMTP_AUTH`, default `false` | Whether SMTP authentication is enabled. |
+| `spring.mail.properties.mail.smtp.starttls.enable` | `MAIL_SMTP_STARTTLS`, default `false` | Whether STARTTLS is enabled. |
+| `app.mail.from` | `MAIL_FROM`, default `no-reply@cafeteria.local` | From address on registration and password-reset messages. |
 | `server.port` | `8080` | HTTP port. |
 | `spring.jpa.hibernate.ddl-auto` | `update` | Update the schema at startup. |
 | `spring.jpa.show-sql` | `true` | Log generated SQL statements. |
@@ -509,6 +529,7 @@ The repository includes:
 
 - `CafeteriaSystemApplicationTests`
 - `AuthControllerTest`
+- `EmailServiceTest`
 - `CategoryServiceTest`
 - `TimeSlotServiceTest`
 - `UserServiceTest`
@@ -522,8 +543,8 @@ README update does not claim that the tests were executed.
 | Symptom | Checks |
 |---|---|
 | Application fails to connect to PostgreSQL | Confirm PostgreSQL is running, `cafeteria_db` exists, the server listens on the configured host/port, and `DB_USERNAME`/`DB_PASSWORD` are correct. |
-| Startup reports unresolved datasource or mail properties | Set `DB_PASSWORD`, `MAIL_USERNAME`, and `MAIL_APP_PASSWORD`; the username defaults to `postgres` if `DB_USERNAME` is omitted. |
-| Password reset email is not delivered | Check Gmail SMTP access, port 587/STARTTLS, sender account, and app password. Check application logs for mail errors. |
+| Startup reports unresolved datasource properties | Set `DB_PASSWORD`; the username defaults to `postgres` if `DB_USERNAME` is omitted. |
+| Registration or password-reset email is not delivered | Confirm Mailpit is running, the app can reach `MAIL_HOST:MAIL_PORT` (defaults to `localhost:1025`), and inspect the inbox at `http://localhost:8025` and the application logs. |
 | A user is redirected to login or receives API `401`/`403` | Confirm that the account is `ACTIVE`, sign in again after role/status changes, and use an account with the role required by the route. |
 | Checkout fails during stock deduction | Ensure each ordered menu item has an `inventory` record; the startup initializer does not seed inventory. |
 | Uploaded image URL returns `404` | Confirm the upload directory is writable and persistent, that `UPLOAD_DIR` is consistent between runs, and that the stored file still exists. |

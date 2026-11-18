@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "time_slots")
@@ -26,6 +27,9 @@ public class TimeSlot {
     @Column(name = "is_active")
     private Boolean isActive = true;
 
+    @Transient
+    private Long remainingCapacity;
+
     // Constructors
     public TimeSlot() {}
 
@@ -45,10 +49,12 @@ public class TimeSlot {
     public Integer getMaxOrders() { return maxOrders; }
     public Boolean getIsActive() { return isActive; }
     public String getSlotTime() { return slotTime; }
+    public Long getRemainingCapacity() { return remainingCapacity; }
 
     public void setSlotTime(String slotTime) {this.slotTime = slotTime;}
     public void setTimeSlotId(Long timeSlotId) {this.timeSlotId = timeSlotId;}
     public void setMaxOrders(Integer maxOrders) {this.maxOrders = maxOrders;}
     public void setIsActive(Boolean isActive) {this.isActive = isActive;}
+    public void setRemainingCapacity(Long remainingCapacity) { this.remainingCapacity = remainingCapacity; }
 
 }

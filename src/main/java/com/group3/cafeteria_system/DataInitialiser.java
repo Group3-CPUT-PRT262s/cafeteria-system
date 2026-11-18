@@ -1,6 +1,7 @@
 package com.group3.cafeteria_system;
 
 import com.group3.cafeteria_system.service.UserService;
+import com.group3.cafeteria_system.service.InventoryService;
 import java.security.SecureRandom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,9 +24,11 @@ public class DataInitialiser implements CommandLineRunner {
     private static final SecureRandom random = new SecureRandom();
 
     private final UserService userService;
+    private final InventoryService inventoryService;
 
-    public DataInitialiser(UserService userService) {
+    public DataInitialiser(UserService userService, InventoryService inventoryService) {
         this.userService = userService;
+        this.inventoryService = inventoryService;
     }
 
     @Override
@@ -64,6 +67,9 @@ public class DataInitialiser implements CommandLineRunner {
                     ========================================
                     """, ADMIN_USERNAME, ADMIN_EMAIL, generatedPassword);
         }
+
+        inventoryService.ensureInventoryRecords();
+        inventoryService.reconcileReservations(inventoryService.getOutstandingReservations());
     }
 
     private String generatePassword() {

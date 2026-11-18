@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 @Entity 
 /* this tells Spring this class maps to a database table. JPA will create the table automatically on startup.
@@ -41,6 +42,19 @@ public class MenuItem {
     // as it carries more information for the staff panel
     @Column(nullable = false)
     private String status = "Available";
+
+    @Column(name = "max_order_quantity", nullable = false,
+            columnDefinition = "integer not null default 10")
+    private Integer maxOrderQuantity = 10;
+
+    @Transient
+    private Integer availableQuantity = 0;
+
+    @Transient
+    private Integer reservedQuantity = 0;
+
+    @Transient
+    private Integer initialStock = 0;
 
     /* Soft delete flag — false hides item from
      student menu without removing the database record
@@ -78,6 +92,10 @@ public class MenuItem {
     public String getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public Boolean getIsActive() { return isActive; }
+    public Integer getMaxOrderQuantity() { return maxOrderQuantity == null ? 10 : maxOrderQuantity; }
+    public Integer getAvailableQuantity() { return availableQuantity; }
+    public Integer getReservedQuantity() { return reservedQuantity; }
+    public Integer getInitialStock() { return initialStock; }
     // ... and Setters
 
     public void setMenuItemId(Long menuItemId) {this.menuItemId = menuItemId;}
@@ -88,13 +106,18 @@ public class MenuItem {
     public void setPrice(Double price) { this.price = price; }
     public void setStatus(String status) { this.status = status; }
     public void setIsActive(Boolean isActive) {this.isActive = isActive;}
+    public void setMaxOrderQuantity(Integer maxOrderQuantity) { this.maxOrderQuantity = maxOrderQuantity; }
+    public void setAvailableQuantity(Integer availableQuantity) { this.availableQuantity = availableQuantity; }
+    public void setReservedQuantity(Integer reservedQuantity) { this.reservedQuantity = reservedQuantity; }
+    public void setInitialStock(Integer initialStock) { this.initialStock = initialStock; }
     public void setCreatedAt(LocalDateTime createdAt) {this.createdAt = createdAt;}
 
 
     // Business logic methods
     // Item is available if active AND not sold out
     public boolean isAvailable() {
-        return Boolean.TRUE.equals(isActive) && status != null && !status.equals("Sold Out");
+        return Boolean.TRUE.equals(isActive) && status != null && !status.equals("Sold Out")
+                && availableQuantity != null && availableQuantity > 0;
     }
 
     // Soft delete — hides from students, preserves historical order records

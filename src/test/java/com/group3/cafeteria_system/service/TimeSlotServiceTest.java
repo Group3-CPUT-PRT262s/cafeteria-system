@@ -42,7 +42,7 @@ class TimeSlotServiceTest {
 
     @Test
     void refusesToDeleteSlotReferencedByOrders() {
-        when(timeSlotRepository.findById(3L)).thenReturn(Optional.of(new TimeSlot("12:30", 20)));
+        when(timeSlotRepository.findByIdForUpdate(3L)).thenReturn(Optional.of(new TimeSlot("12:30", 20)));
         when(customerOrderRepository.existsByTimeSlotId(3L)).thenReturn(true);
 
         assertThrows(IllegalStateException.class, () -> timeSlotService.deleteSlot(3L));
@@ -52,12 +52,9 @@ class TimeSlotServiceTest {
     void refusesCapacityBelowExistingOrders() {
         TimeSlot slot = new TimeSlot("12:30", 20);
         slot.setTimeSlotId(3L);
-        when(timeSlotRepository.findById(3L)).thenReturn(Optional.of(slot));
+        when(timeSlotRepository.findByIdForUpdate(3L)).thenReturn(Optional.of(slot));
         when(timeSlotRepository.findAll()).thenReturn(List.of(slot));
-        when(customerOrderRepository.existsByTimeSlotId(3L)).thenReturn(true);
-        when(customerOrderRepository.findByTimeSlotId(3L)).thenReturn(List.of(
-                new com.group3.cafeteria_system.model.CustomerOrder(),
-                new com.group3.cafeteria_system.model.CustomerOrder()));
+        when(customerOrderRepository.countActiveOrdersByTimeSlotId(3L)).thenReturn(2L);
 
         assertThrows(IllegalStateException.class,
                 () -> timeSlotService.updateTimeSlot(3L, "12:30", 1));

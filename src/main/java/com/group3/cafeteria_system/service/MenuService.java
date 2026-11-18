@@ -1,62 +1,82 @@
 package com.group3.cafeteria_system.service;
 
-import com.group3.cafeteria_system.model.MenuItem;
-import com.group3.cafeteria_system.repository.MenuItemRepository;
-import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.group3.cafeteria_system.model.Inventory;
+import com.group3.cafeteria_system.model.MenuItem;
+import com.group3.cafeteria_system.repository.InventoryRepository;
+import com.group3.cafeteria_system.repository.MenuItemRepository;
 
 @Service
 public class MenuService {
 
     private final MenuItemRepository menuItemRepository;
-    String menuMessage = "Menu item not found with id: ";
+    private final InventoryRepository inventoryRepository;
+    private static final String MENU_ITEM_NOT_FOUND = "Menu item not found with id: ";
 
-    public MenuService(MenuItemRepository menuItemRepository) {
+    public MenuService(MenuItemRepository menuItemRepository,
+                       InventoryRepository inventoryRepository) {
         this.menuItemRepository = menuItemRepository;
+        this.inventoryRepository = inventoryRepository;
     }
-
-    // Retrieval methods
 
     public List<MenuItem> getAllActiveItems() {
-        return menuItemRepository.findByIsActiveTrue();
+        return addStockAvailability(menuItemRepository.findByIsActiveTrue());
     }
 
-    // Now takes a category ID instead of a category name string
     public List<MenuItem> getItemsByCategory(Long categoryId) {
-        return menuItemRepository.findByIsActiveTrueAndCategoryId(categoryId);
+        return addStockAvailability(menuItemRepository.findByIsActiveTrueAndCategoryId(categoryId));
     }
 
     public List<MenuItem> getItemsByStatus(String status) {
-        return menuItemRepository.findByIsActiveTrueAndStatus(status);
+        return addStockAvailability(menuItemRepository.findByIsActiveTrueAndStatus(status));
     }
 
     public Optional<MenuItem> getItemById(Long id) {
-        return menuItemRepository.findById(id);
+        return menuItemRepository.findById(id)
+                .map(item -> addStockAvailability(List.of(item)).get(0));
     }
 
     public List<MenuItem> getAllItemsForStaff() {
-        return menuItemRepository.findAll();
+        return addStockAvailability(menuItemRepository.findAll());
     }
 
-    // Staff management methods
-    // Add a new menu item
+    @Transactional
     public MenuItem addItem(MenuItem item) {
         validateStatus(item.getStatus());
-        return menuItemRepository.save(item);
+        validateMaxOrderQuantity(item.getMaxOrderQuantity());
+        if (item.getInitialStock() == null || item.getInitialStock() < 0) {
+            throw new IllegalArgumentException("Initial stock cannot be negative.");
+        }
+        if (item.getInitialStock() == 0) {
+            item.setStatus("Sold Out");
+        }
+        MenuItem saved = menuItemRepository.save(item);
+        inventoryRepository.save(new Inventory(saved.getMenuItemId(),
+                item.getInitialStock(), 5, "portions"));
+        saved.setAvailableQuantity(item.getInitialStock());
+        return saved;
     }
 
-    // Update an existing item (name, price, description, category)
+    @Transactional
     public MenuItem updateItem(Long id, MenuItem updatedItem) {
         validateStatus(updatedItem.getStatus());
-        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
-
+        validateMaxOrderQuantity(updatedItem.getMaxOrderQuantity());
+        MenuItem item = menuItemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(MENU_ITEM_NOT_FOUND + id));
         item.setItemName(updatedItem.getItemName());
         item.setDescription(updatedItem.getDescription());
         item.setPrice(updatedItem.getPrice());
         item.setCategoryId(updatedItem.getCategoryId());
         item.setStatus(updatedItem.getStatus());
+        item.setMaxOrderQuantity(updatedItem.getMaxOrderQuantity());
         if (updatedItem.getImageUrl() != null) {
             item.setImageUrl(updatedItem.getImageUrl());
         }
@@ -65,8 +85,8 @@ public class MenuService {
 
     public MenuItem updateStatus(Long id, String status) {
         validateStatus(status);
-        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
-
+        MenuItem item = menuItemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(MENU_ITEM_NOT_FOUND + id));
         item.setStatus(status);
         return menuItemRepository.save(item);
     }
@@ -77,16 +97,39 @@ public class MenuService {
         }
     }
 
-    public void removeItem(Long id) {
-        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
+    private void validateMaxOrderQuantity(Integer quantity) {
+        if (quantity == null || quantity < 1) {
+            throw new IllegalArgumentException("Maximum order quantity must be at least 1.");
+        }
+    }
 
+    private List<MenuItem> addStockAvailability(List<MenuItem> items) {
+        if (items.isEmpty()) {
+            return items;
+        }
+        Map<Long, Inventory> inventoryByItem = inventoryRepository
+                .findAllByMenuItemIdIn(items.stream().map(MenuItem::getMenuItemId).toList())
+                .stream()
+                .collect(Collectors.toMap(Inventory::getMenuItemId,
+                        inventory -> inventory, (first, ignored) -> first));
+        items.forEach(item -> {
+            Inventory inventory = inventoryByItem.get(item.getMenuItemId());
+            item.setAvailableQuantity(inventory == null ? 0 : inventory.getQuantityInStock());
+            item.setReservedQuantity(inventory == null ? 0 : inventory.getReservedQuantity());
+        });
+        return items;
+    }
+
+    public void removeItem(Long id) {
+        MenuItem item = menuItemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(MENU_ITEM_NOT_FOUND + id));
         item.softDelete();
         menuItemRepository.save(item);
     }
 
     public void restoreItem(Long id) {
-        MenuItem item = menuItemRepository.findById(id).orElseThrow(() -> new RuntimeException(menuMessage + id));
-
+        MenuItem item = menuItemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(MENU_ITEM_NOT_FOUND + id));
         item.restore();
         menuItemRepository.save(item);
     }

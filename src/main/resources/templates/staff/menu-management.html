@@ -315,6 +315,22 @@
                              th:text="${item.description
                          ?: 'No description.'}">
                         </div>
+                        <div class="item-meta mt-2"
+                             th:text="'Available: ' + ${item.availableQuantity}
+                             + ' · Reserved: ' + ${item.reservedQuantity}
+                             + ' · Maximum per order: ' + ${item.maxOrderQuantity}">
+                        </div>
+                        <div class="d-flex gap-2 mt-2" th:if="${item.isActive}">
+                            <input class="form-control form-control-sm"
+                                   type="number" min="1" value="1"
+                                   th:id="'restock-' + ${item.menuItemId}"
+                                   th:attr="aria-label=${'Additional stock for ' + item.itemName}"
+                                   placeholder="Add stock">
+                            <button class="btn btn-sm btn-outline-success" type="button"
+                                    th:onclick="'restockItem(' + ${item.menuItemId} + ')'">
+                                Restock
+                            </button>
+                        </div>
 
                         <div class="mgmt-card-footer">
                     <span class="mgmt-price"
@@ -519,6 +535,33 @@
             .catch(() => {
                 showToast('Update failed.', true);
             });
+    }
+
+    async function restockItem(itemId) {
+        const input = document.getElementById(`restock-${itemId}`);
+        const quantity = Number.parseInt(input.value, 10);
+        if (!Number.isInteger(quantity) || quantity < 1) {
+            showToast('Enter a positive whole number of portions to add.', true);
+            return;
+        }
+        const csrf = document.querySelector('meta[name="_csrf"]')?.content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrf && csrfHeader) headers[csrfHeader] = csrf;
+        try {
+            const response = await fetch(`/api/staff/inventory/${itemId}/restock`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers,
+                body: JSON.stringify({ quantity })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Inventory could not be updated.');
+            showToast(result.message);
+            setTimeout(() => location.reload(), 700);
+        } catch (error) {
+            showToast(error.message || 'Inventory could not be updated.', true);
+        }
     }
 
     // ── DELETE — soft delete ──────────────────

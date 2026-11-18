@@ -28,15 +28,19 @@
                         <span class="profile-section-kicker">01 · Pickup</span>
                         <h2>Choose your pickup time</h2>
                         <label class="choice checkout-slot" th:each="slot : ${timeSlots}">
-                            <input type="radio" name="timeSlotId" th:value="${slot.timeSlotId}" required>
+                            <input type="radio" name="timeSlotId" th:value="${slot.timeSlotId}"
+                                   th:disabled="${slot.remainingCapacity == 0}" required>
                             <span class="checkout-slot-copy">
                                 <strong th:text="${slot.slotTime}"></strong>
-                                <span th:text="${slot.maxOrders} + ' order capacity'"></span>
+                                <span th:text="${slot.remainingCapacity} + ' orders remaining'"></span>
                             </span>
                             <i class="bi bi-clock"></i>
                         </label>
                         <p class="text-muted small" th:if="${#lists.isEmpty(timeSlots)}">
                             No pickup slots are available right now.
+                        </p>
+                        <p class="text-muted small" th:if="${!#lists.isEmpty(timeSlots) and timeSlots.?[remainingCapacity > 0].isEmpty()}">
+                            All pickup slots are currently full.
                         </p>
 
                         <div class="checkout-wallet">

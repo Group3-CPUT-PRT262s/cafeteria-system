@@ -28,7 +28,7 @@ public class CheckoutService {
     public CustomerOrder checkout(Long userId, Long timeSlotId,
                                   Map<Long, Integer> cart) {
         CustomerOrder order = orderService.placeOrder(userId, timeSlotId, cart);
-        walletService.debit(userId, order.getTotalAmount());
+        walletService.chargeOrder(userId, order.getOrderId(), order.getTotalAmount());
 
         Payment payment = paymentService.createPayment(
                 order.getOrderId(), order.getTotalAmount(), "WALLET");

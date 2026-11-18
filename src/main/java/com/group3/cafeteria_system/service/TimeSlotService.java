@@ -32,6 +32,14 @@ public class TimeSlotService {
         return timeSlotRepository.findAll();
     }
 
+    public List<TimeSlot> getAvailableTimeSlots() {
+        return timeSlotRepository.findByIsActiveTrue().stream()
+                .peek(slot -> slot.setRemainingCapacity(slot.getMaxOrders() == null ? 0
+                        : Math.max(0L, slot.getMaxOrders() - customerOrderRepository
+                                .countActiveOrdersByTimeSlotId(slot.getTimeSlotId()))))
+                .toList();
+    }
+
     @Transactional
     public TimeSlot addTimeSlot(String slotTime, Integer maxOrders) {
         String normalizedTime = normalizeTime(slotTime);
@@ -42,18 +50,17 @@ public class TimeSlotService {
 
     @Transactional
     public TimeSlot updateTimeSlot(Long id, String slotTime, Integer maxOrders) {
-        TimeSlot slot = findSlotOrThrow(id);
+        TimeSlot slot = timeSlotRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new IllegalArgumentException("Time slot not found."));
         String normalizedTime = normalizeTime(slotTime);
         validateMaxOrders(maxOrders);
         ensureUniqueTime(normalizedTime, id);
 
-        if (customerOrderRepository.existsByTimeSlotId(id)) {
-            long orders = customerOrderRepository.findByTimeSlotId(id).size();
-            if (maxOrders < orders) {
-                throw new IllegalStateException(
-                        "Maximum orders cannot be lower than the " + orders
-                                + " order(s) already assigned to this slot.");
-            }
+        long orders = customerOrderRepository.countActiveOrdersByTimeSlotId(id);
+        if (maxOrders < orders) {
+            throw new IllegalStateException(
+                    "Maximum orders cannot be lower than the " + orders
+                            + " active order(s) already assigned to this slot.");
         }
 
         slot.setSlotTime(normalizedTime);
@@ -71,7 +78,8 @@ public class TimeSlotService {
 
     @Transactional
     public TimeSlot toggleSlot(Long id) {
-        TimeSlot slot = findSlotOrThrow(id);
+        TimeSlot slot = timeSlotRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new IllegalArgumentException("Time slot not found."));
         if (Boolean.TRUE.equals(slot.getIsActive())) {
             slot.deactivateTimeslot();
         } else {
@@ -82,7 +90,8 @@ public class TimeSlotService {
 
     @Transactional
     public void deleteSlot(Long timeSlotId) {
-        TimeSlot slot = findSlotOrThrow(timeSlotId);
+        TimeSlot slot = timeSlotRepository.findByIdForUpdate(timeSlotId)
+                .orElseThrow(() -> new IllegalArgumentException("Time slot not found."));
         if (customerOrderRepository.existsByTimeSlotId(timeSlotId)) {
             throw new IllegalStateException(
                     "This time slot has existing orders. Deactivate it to keep order history intact.");

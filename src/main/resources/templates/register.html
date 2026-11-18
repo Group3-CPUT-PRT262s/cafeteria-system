@@ -715,7 +715,7 @@
              * Successful registration
              */
             if (response.ok && (data.status === 'success' || data.message?.toLowerCase().includes('successfully'))) {
-                window.location.href = '/login?registered=true';
+                window.location.href = '/verify-registration';
                 return;
             }
 

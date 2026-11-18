@@ -25,17 +25,20 @@ public class OrderService {
     private final MenuItemRepository menuItemRepository;
     private final TimeSlotRepository timeSlotRepository;
     private final InventoryService inventoryService;
+    private final WalletService walletService;
 
     public OrderService(CustomerOrderRepository customerOrderRepository,
                         OrderItemRepository orderItemRepository,
                         MenuItemRepository menuItemRepository,
                         TimeSlotRepository timeSlotRepository,
-                        InventoryService inventoryService) {
+                        InventoryService inventoryService,
+                        WalletService walletService) {
         this.customerOrderRepository = customerOrderRepository;
         this.orderItemRepository = orderItemRepository;
         this.menuItemRepository = menuItemRepository;
         this.timeSlotRepository = timeSlotRepository;
         this.inventoryService = inventoryService;
+        this.walletService = walletService;
     }
 
     // Place an order
@@ -48,46 +51,73 @@ public class OrderService {
             throw new IllegalArgumentException("Cannot place an empty order."); // null checker exception
         }
 
-        TimeSlot slot = timeSlotRepository.findById(timeSlotId)
+        if (timeSlotId == null || userId == null) {
+            throw new IllegalArgumentException("A customer and collection time are required.");
+        }
+
+        TimeSlot slot = timeSlotRepository.findByIdForUpdate(timeSlotId)
                 .orElseThrow(() ->
                         new RuntimeException("Time slot not found."));
 
-        if (!slot.getIsActive()) {
+        if (!Boolean.TRUE.equals(slot.getIsActive())) {
             throw new IllegalStateException("Selected time slot is no longer available.");
         }
 
-        // Check the slot hasn't exceeded its max_orders limit
-        List<CustomerOrder> existingOrders =
-                customerOrderRepository.findByTimeSlotId(timeSlotId);
-        if (existingOrders.size() >= slot.getMaxOrders()) {
-            throw new IllegalStateException("Cannot place an order with more than " + slot.getMaxOrders() +
-                    "This time slot is fully booked. Please choose another.");
+        long activeOrders = customerOrderRepository.countActiveOrdersByTimeSlotId(timeSlotId);
+        if (slot.getMaxOrders() == null || activeOrders >= slot.getMaxOrders()) {
+            throw new IllegalStateException("This collection time is fully booked. Please choose another.");
         }
 
         double total = 0.0;
         List<OrderItem> orderItems = new ArrayList<>();
 
-        for (Map.Entry<Long, Integer> entry : cart.entrySet()) {
-            Long itemId = entry.getKey();
-            Integer quantity = entry.getValue();
+        if (cart.keySet().stream().anyMatch(itemId -> itemId == null)) {
+            throw new IllegalArgumentException("Every order item must be selected from the menu.");
+        }
+        for (Long itemId : cart.keySet().stream().sorted().toList()) {
+            Integer quantity = cart.get(itemId);
 
+            if (itemId == null || quantity == null || quantity < 1) {
+                throw new IllegalArgumentException("Every order quantity must be at least one.");
+            }
             MenuItem menuItem = menuItemRepository.findById(itemId)
                     .orElseThrow(() ->
                             new RuntimeException("Menu item not found: " + itemId));
 
-            if (!menuItem.isAvailable()) {
+            if (!Boolean.TRUE.equals(menuItem.getIsActive())
+                    || "Sold Out".equals(menuItem.getStatus())) {
                 throw new IllegalStateException(
                         menuItem.getItemName() + " is no longer available.");
             }
+            int maxQuantity = menuItem.getMaxOrderQuantity() == null
+                    ? 10 : menuItem.getMaxOrderQuantity();
+            if (quantity > maxQuantity) {
+                throw new IllegalArgumentException(menuItem.getItemName()
+                        + " has a maximum order quantity of " + maxQuantity + ".");
+            }
+            if (menuItem.getPrice() == null || !Double.isFinite(menuItem.getPrice())
+                    || menuItem.getPrice() <= 0) {
+                throw new IllegalStateException(menuItem.getItemName() + " has an invalid price.");
+            }
 
             double lineTotal = menuItem.getPrice() * quantity;
+            if (!Double.isFinite(lineTotal)) {
+                throw new IllegalArgumentException("The order total is too large to process.");
+            }
             total += lineTotal;
+            if (!Double.isFinite(total)) {
+                throw new IllegalArgumentException("The order total is too large to process.");
+            }
 
             OrderItem orderItem = new OrderItem();
             orderItem.setMenuItemId(itemId);
             orderItem.setQuantity(quantity);
             orderItem.setUnitPrice(menuItem.getPrice());
             orderItems.add(orderItem);
+        }
+        total = Math.round(total * 100.0) / 100.0;
+        if (!Double.isFinite(total) || total <= 0) {
+            throw new IllegalArgumentException("The order total must be greater than zero.");
         }
 
         CustomerOrder order = new CustomerOrder();
@@ -100,7 +130,7 @@ public class OrderService {
         for (OrderItem item : orderItems) {
             item.setOrderId(savedOrder.getOrderId());
             orderItemRepository.save(item);
-            inventoryService.deductStock(item.getMenuItemId(), item.getQuantity());
+            inventoryService.reserveStock(item.getMenuItemId(), item.getQuantity());
         }
 
         return savedOrder;
@@ -131,8 +161,9 @@ public class OrderService {
 
     // Staff order management
 
+    @Transactional
     public CustomerOrder updateOrderStatus(Long orderId, String status) {
-        CustomerOrder order = customerOrderRepository.findById(orderId)
+        CustomerOrder order = customerOrderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() ->
                         new RuntimeException("Order not found with id: " + orderId));
 
@@ -146,6 +177,18 @@ public class OrderService {
         if (!validTransition) {
             throw new IllegalStateException(
                     "Cannot change order status from " + order.getOrderStatus() + " to " + status + ".");
+        }
+
+        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        if ("Cancelled".equals(status)) {
+            for (OrderItem item : items) {
+                inventoryService.releaseStock(item.getMenuItemId(), item.getQuantity());
+            }
+            walletService.refundOrder(order.getUserId(), orderId, order.getTotalAmount());
+        } else if ("Collected".equals(status)) {
+            for (OrderItem item : items) {
+                inventoryService.commitReservedStock(item.getMenuItemId(), item.getQuantity());
+            }
         }
 
         order.setOrderStatus(status);

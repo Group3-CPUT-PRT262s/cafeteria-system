@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify your email | Campus Cafeteria</title>
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+</head>
+<body>
+<main class="auth-wrapper">
+    <section class="auth-panel auth-form-panel" aria-labelledby="verify-heading">
+        <div class="auth-container">
+            <header class="auth-header">
+                <div class="auth-logo"><h2>Campus Cafeteria</h2></div>
+                <p class="auth-kicker">One last step</p>
+                <h1 id="verify-heading" class="auth-title">Verify your email</h1>
+                <p class="auth-subtitle">
+                    Enter the six-digit code sent to <strong th:text="${email}">your email</strong>.
+                    The code expires in 10 minutes.
+                </p>
+            </header>
+            <div th:if="${successMessage}" class="auth-alert auth-alert-success"
+                 role="status" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="auth-alert auth-alert-danger"
+                 role="alert" th:text="${errorMessage}"></div>
+            <form th:action="@{/verify-registration}" method="post" class="auth-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-group">
+                    <label class="form-label" for="code">Verification code</label>
+                    <input class="form-control" id="code" name="code" type="text"
+                           inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+                           autocomplete="one-time-code" required>
+                </div>
+                <button class="btn btn-lg w-100 auth-submit" type="submit">Verify and create account</button>
+            </form>
+            <footer class="auth-footer">
+                <a class="auth-link" th:href="@{/register}">Start registration again</a>
+            </footer>
+        </div>
+    </section>
+    <section class="auth-panel auth-visual-panel" aria-hidden="true">
+        <div class="visual-shape shape-1"></div>
+        <div class="visual-shape shape-2"></div>
+        <div class="visual-shape shape-3"></div>
+        <div class="auth-visual-content">
+            <div class="auth-badge">Secure email verification</div>
+            <h1>One account.<br>Many good meals.</h1>
+            <p>Email verification confirms ownership and does not change how you log in.</p>
+        </div>
+    </section>
+</main>
+</body>
+</html>

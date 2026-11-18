@@ -22,6 +22,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.group3.cafeteria_system.service.EmailService;
 import com.group3.cafeteria_system.service.UserService;
+import com.group3.cafeteria_system.service.RegistrationService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -35,11 +36,15 @@ public class AuthController {
     private final UserService userService;
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
+    private final RegistrationService registrationService;
 
-    public AuthController(UserService userService, EmailService emailService, AuthenticationManager authenticationManager) {
+    public AuthController(UserService userService, EmailService emailService,
+                          AuthenticationManager authenticationManager,
+                          RegistrationService registrationService) {
         this.userService = userService;
         this.emailService = emailService;
         this.authenticationManager = authenticationManager;
+        this.registrationService = registrationService;
     }
 
     /* LOGIN
@@ -70,6 +75,16 @@ public class AuthController {
     @GetMapping("/register")
     public String registerPage() {
         return "register";
+    }
+
+    @GetMapping("/verify-registration")
+    public String verifyRegistrationPage(HttpSession session, Model model) {
+        Object email = session.getAttribute("registrationEmail");
+        if (!(email instanceof String)) {
+            return "redirect:/register";
+        }
+        model.addAttribute("email", email);
+        return "verify-registration";
     }
 
     @GetMapping("/forgot-password")
@@ -217,7 +232,8 @@ public class AuthController {
     @PostMapping("/api/auth/register")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> register(
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body,
+            HttpSession session) {
 
         String username  = body.getOrDefault(
                 "username",  "").trim();
@@ -247,27 +263,16 @@ public class AuthController {
         if (!password.equals(confirmPassword)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error("Passwords do not match."));
         }
-        if (email.isBlank() || !email.contains("@")) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error("A valid email address is required."));
-        }
-
         try {
-            userService.registerUser(
-                    username, password,
-                    firstName, lastName,
-                    email, "STUDENT"
-            );
-
+            registrationService.start(username, password, firstName, lastName, email);
+            session.setAttribute("registrationEmail", email.toLowerCase());
             Map<String, Object> response = new LinkedHashMap<>();
-            response.put("message",
-                    "Account created successfully. " +
-                            "You can now log in.");
+            response.put("status", "success");
+            response.put("message", "A verification code has been sent to your email.");
             response.put("username", username);
-
             return ResponseEntity
-                    .status(HttpStatus.CREATED)
+                    .status(HttpStatus.ACCEPTED)
                     .body(response);
-
         } catch (RuntimeException e) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
@@ -285,6 +290,7 @@ public class AuthController {
             @RequestParam String firstName,
             @RequestParam String lastName,
             @RequestParam String email,
+            HttpSession session,
             RedirectAttributes redirectAttributes) {
 
         if (password.length() < 8) {
@@ -299,20 +305,52 @@ public class AuthController {
         }
 
         try {
-            userService.registerUser(
-                    username, password,
-                    firstName, lastName,
-                    email, "STUDENT"
-            );
+            registrationService.start(username, password, firstName, lastName, email);
+            session.setAttribute("registrationEmail", email.trim().toLowerCase());
             redirectAttributes.addFlashAttribute(
                     "successMessage",
-                    "Account created! You can now log in.");
-            return "redirect:/login";
+                    "A verification code has been sent to your email.");
+            return "redirect:/verify-registration";
 
         } catch (RuntimeException e) {
             redirectAttributes.addFlashAttribute(
                     ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
             return "redirect:/register";
+        }
+    }
+
+    @PostMapping("/verify-registration")
+    public String verifyRegistrationForm(@RequestParam String code,
+                                         HttpSession session,
+                                         RedirectAttributes redirectAttributes) {
+        Object email = session.getAttribute("registrationEmail");
+        if (!(email instanceof String)) {
+            return "redirect:/register";
+        }
+        try {
+            registrationService.verify((String) email, code);
+            session.removeAttribute("registrationEmail");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Email verified and account created. You can now log in.");
+            return "redirect:/login";
+        } catch (RuntimeException exception) {
+            redirectAttributes.addFlashAttribute(ERROR_MESSAGE_ATTRIBUTE, exception.getMessage());
+            return "redirect:/verify-registration";
+        }
+    }
+
+    @PostMapping("/api/auth/register/verify")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> verifyRegistrationApi(
+            @RequestBody Map<String, String> body) {
+        try {
+            String email = body.getOrDefault("email", "");
+            String code = body.getOrDefault("code", "");
+            registrationService.verify(email, code);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(success("Email verified and account created. You can now log in."));
+        } catch (RuntimeException exception) {
+            return ResponseEntity.badRequest().body(error(exception.getMessage()));
         }
     }
 

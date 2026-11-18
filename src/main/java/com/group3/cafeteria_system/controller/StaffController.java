@@ -29,6 +29,7 @@ import com.group3.cafeteria_system.service.OrderService;
 import com.group3.cafeteria_system.service.TimeSlotService;
 import com.group3.cafeteria_system.service.UserService;
 import com.group3.cafeteria_system.service.ImageStorageService;
+import com.group3.cafeteria_system.service.InventoryService;
 
 @Controller
 public class StaffController {
@@ -41,16 +42,19 @@ public class StaffController {
     private final TimeSlotService timeSlotService;
     private final UserService userService;
     private final ImageStorageService imageStorageService;
+    private final InventoryService inventoryService;
 
     public StaffController(MenuService menuService, CategoryService categoryService,
                            OrderService orderService, TimeSlotService timeSlotService,
-                           UserService userService, ImageStorageService imageStorageService) {
+                           UserService userService, ImageStorageService imageStorageService,
+                           InventoryService inventoryService) {
         this.menuService = menuService;
         this.categoryService = categoryService;
         this.orderService = orderService;
         this.timeSlotService = timeSlotService;
         this.userService = userService;
         this.imageStorageService = imageStorageService;
+        this.inventoryService = inventoryService;
     }
 
     @GetMapping("/staff/dashboard")
@@ -611,6 +615,42 @@ public class StaffController {
         }
     }
 
+    @DeleteMapping("/api/staff/users/{id}")
+    public ResponseEntity<Map<String, Object>> deactivateUser(
+            @PathVariable Long id, Authentication authentication) {
+        try {
+            Long requesterId = userService.getUserIdByUsername(authentication.getName());
+            userService.updateAccountStatus(requesterId, id, "INACTIVE");
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Account deactivated. Order and wallet history has been retained."));
+        } catch (RuntimeException exception) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error", "message", exception.getMessage()));
+        }
+    }
+
+    @PostMapping("/api/staff/inventory/{menuItemId}/restock")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> restockMenuItem(
+            @PathVariable Long menuItemId,
+            @RequestBody Map<String, Integer> body) {
+        try {
+            Integer quantity = body == null ? null : body.get("quantity");
+            var inventory = inventoryService.restock(menuItemId,
+                    quantity == null ? 0 : quantity);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "quantityInStock", inventory.getQuantityInStock(),
+                    "message", "Inventory updated. Available stock: "
+                            + inventory.getQuantityInStock() + "."));
+        } catch (RuntimeException exception) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", exception.getMessage()));
+        }
+    }
+
     //-------------------
 
     @PostMapping(value = "/api/staff/menu", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -645,6 +685,8 @@ public class StaffController {
             @RequestParam Double price,
             @RequestParam Long categoryId,
             @RequestParam String status,
+            @RequestParam(defaultValue = "10") Integer maxOrderQuantity,
+            @RequestParam(defaultValue = "0") Integer initialStock,
             @RequestParam(required = false) MultipartFile image) {
         String imageUrl = null;
         try {
@@ -654,6 +696,8 @@ public class StaffController {
             item.setPrice(price);
             item.setCategoryId(categoryId);
             item.setStatus(status);
+            item.setMaxOrderQuantity(maxOrderQuantity);
+            item.setInitialStock(initialStock);
             if (image != null && !image.isEmpty()) {
                 imageUrl = imageStorageService.storeMenuItemImage(image);
                 item.setImageUrl(imageUrl);
@@ -770,6 +814,7 @@ public class StaffController {
             @RequestParam Double price,
             @RequestParam Long categoryId,
             @RequestParam String status,
+            @RequestParam(defaultValue = "10") Integer maxOrderQuantity,
             @RequestParam(required = false) MultipartFile image) {
         String imageUrl = null;
         String previousImageUrl = null;
@@ -784,6 +829,7 @@ public class StaffController {
             updatedItem.setPrice(price);
             updatedItem.setCategoryId(categoryId);
             updatedItem.setStatus(status);
+            updatedItem.setMaxOrderQuantity(maxOrderQuantity);
             if (image != null && !image.isEmpty()) {
                 imageUrl = imageStorageService.storeMenuItemImage(image);
                 updatedItem.setImageUrl(imageUrl);

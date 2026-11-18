@@ -124,7 +124,7 @@
                 </div>
 
                 <aside class="profile-side-column">
-                    <section class="profile-wallet-card">
+                    <section class="profile-wallet-card" th:if="${!staffProfile}">
                         <div class="profile-wallet-top">
                             <span class="profile-wallet-icon"><i class="bi bi-wallet2"></i></span>
                             <span class="profile-wallet-tag">DEMO WALLET</span>
@@ -133,17 +133,9 @@
                         <strong class="profile-wallet-balance"
                                 th:text="'R' + ${#numbers.formatDecimal(walletBalance, 1, 'COMMA', 2, 'POINT')}">R500.00</strong>
                         <p>Use your wallet at checkout. These demo credits have no cash value.</p>
-                        <div class="profile-wallet-actions">
-                            <form th:each="amount : ${walletTopUpAmounts}"
-                                  th:action="@{/profile/wallet/top-up}" method="post">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <input type="hidden" name="amount" th:value="${amount}">
-                                <button type="submit">
-                                    <i class="bi bi-plus-lg"></i>
-                                    <span th:text="'R' + ${#numbers.formatDecimal(amount, 1, 'COMMA', 0, 'POINT')}">R100</span>
-                                </button>
-                            </form>
-                        </div>
+                        <a class="btn btn-light w-100 mt-3" th:href="@{/wallet}">
+                            <i class="bi bi-plus-lg me-1"></i> Manage wallet
+                        </a>
                         <div class="profile-wallet-sparkle profile-wallet-sparkle-one"></div>
                         <div class="profile-wallet-sparkle profile-wallet-sparkle-two"></div>
                     </section>
@@ -162,10 +154,10 @@
                         <button class="profile-account-action profile-delete-action" type="button"
                                 data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
                             <i class="bi bi-person-x"></i>
-                            <span>Delete account</span>
+                            <span>Deactivate account</span>
                             <i class="bi bi-chevron-right"></i>
                         </button>
-                        <p class="profile-delete-note">Deleting your account signs you out and cannot be undone.</p>
+                        <p class="profile-delete-note">Deactivating your account signs you out. Order and transaction records are retained.</p>
                     </section>
                 </aside>
             </div>
@@ -177,13 +169,13 @@
                 <div class="modal-content profile-delete-modal">
                     <div class="modal-body">
                         <span class="profile-delete-modal-icon"><i class="bi bi-exclamation-triangle"></i></span>
-                        <h2 id="deleteAccountTitle">Delete your account?</h2>
-                        <p>Your profile and wallet access will be removed. Existing restaurant order records are retained for operational history.</p>
+                        <h2 id="deleteAccountTitle">Deactivate your account?</h2>
+                        <p>Your account access will be disabled. Orders and wallet transactions remain available for historical records.</p>
                         <div class="profile-delete-modal-actions">
                             <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Keep my account</button>
                             <form th:action="@{/profile/delete-account}" method="post">
                                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <button class="btn btn-danger" type="submit">Delete account</button>
+                                <button class="btn btn-danger" type="submit">Deactivate account</button>
                             </form>
                         </div>
                     </div>

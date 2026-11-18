@@ -39,9 +39,7 @@ public class AccountStatusFilter extends OncePerRequestFilter {
         User user = userRepository.findByUsername(authentication.getName()).orElse(null);
         boolean validSession = user != null
                 && "ACTIVE".equals(user.getAccountStatus())
-                && authentication.getAuthorities().stream()
-                        .map(GrantedAuthority::getAuthority)
-                        .anyMatch(("ROLE_" + user.getRole())::equals);
+                && authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(("ROLE_" + user.getRole())::equals);
         if (validSession) {
             filterChain.doFilter(request, response);
             return;

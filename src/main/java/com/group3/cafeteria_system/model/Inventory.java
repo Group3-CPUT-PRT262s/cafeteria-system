@@ -18,6 +18,10 @@ public class Inventory {
     @Column(name = "quantity_in_stock", nullable = false)
     private Integer quantityInStock = 0;
 
+    @Column(name = "reserved_quantity", nullable = false,
+            columnDefinition = "integer not null default 0")
+    private Integer reservedQuantity = 0;
+
     // When stock falls to or below this level,
     // the item status should be updated to Low Stock
     @Column(name = "reorder_level")
@@ -62,15 +66,34 @@ public class Inventory {
         return quantityInStock <= 0;
     }
 
-    // Reduce stock when an order is placed
-    public void deductStock(int quantity) {
-        this.quantityInStock = Math.max(0, this.quantityInStock - quantity);
+    public void reserveStock(int quantity) {
+        if (quantity <= 0 || quantityInStock < quantity) {
+            throw new IllegalStateException("Insufficient stock available.");
+        }
+        quantityInStock -= quantity;
+        reservedQuantity += quantity;
+    }
+
+    public void releaseStock(int quantity) {
+        if (quantity <= 0 || reservedQuantity < quantity) {
+            throw new IllegalStateException("Reserved stock could not be released.");
+        }
+        reservedQuantity -= quantity;
+        quantityInStock += quantity;
+    }
+
+    public void commitReservedStock(int quantity) {
+        if (quantity <= 0 || reservedQuantity < quantity) {
+            throw new IllegalStateException("Reserved stock could not be committed.");
+        }
+        reservedQuantity -= quantity;
     }
 
     // Getters and Setters
     public Long getInventoryId() { return inventoryId; }
     public Long getMenuItemId() { return menuItemId; }
     public Integer getQuantityInStock() {return quantityInStock;}
+    public Integer getReservedQuantity() { return reservedQuantity; }
     public Integer getReorderLevel() { return reorderLevel; }
     public String getUnitMeasure() { return unitMeasure; }
     public LocalDateTime getLastUpdated() { return lastUpdated; }
@@ -79,6 +102,7 @@ public class Inventory {
     public void setInventoryId(Long inventoryId) {this.inventoryId = inventoryId;}
     public void setMenuItemId(Long menuItemId) {this.menuItemId = menuItemId;}
     public void setQuantityInStock(Integer qty) {this.quantityInStock = qty;}
+    public void setReservedQuantity(Integer quantity) { this.reservedQuantity = quantity; }
     public void setReorderLevel(Integer reorderLevel) {this.reorderLevel = reorderLevel;}
     public void setUnitMeasure(String unitMeasure) {this.unitMeasure = unitMeasure;}
     public void setLastUpdated(LocalDateTime lastUpdated) {this.lastUpdated = lastUpdated;}

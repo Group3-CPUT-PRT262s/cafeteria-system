@@ -50,8 +50,8 @@
                                 <span class="image-hint"><i class="bi bi-arrows-angle-expand"></i> View dish</span>
                             </button>
                             <span class="stock"
-                                th:classappend="${item.status == 'Low Stock'} ? ' low' : (${item.status == 'Sold Out'} ? ' sold' : '')"
-                                th:text="${item.status}"></span>
+                                th:classappend="${item.availableQuantity == 0} ? ' sold' : (${item.status == 'Low Stock'} ? ' low' : '')"
+                                th:text="${item.availableQuantity == 0 ? 'Out of stock' : item.availableQuantity + ' available'}"></span>
                         </div>
                         <div class="food-card-body">
                             <div class="food-card-heading">
@@ -61,6 +61,8 @@
                             </div>
                             <p class="food-description"
                                 th:text="${item.description ?: 'A freshly prepared cafeteria favourite.'}"></p>
+                            <p class="small text-muted mb-2"
+                               th:text="'Maximum ' + ${item.maxOrderQuantity} + ' per order'"></p>
                             <button class="btn btn-cc-primary add-cart" th:data-id="${item.menuItemId}"
                                 th:disabled="${!item.available}"
                                 th:text="${item.available} ? 'Add to Cart' : 'Sold out'"></button>

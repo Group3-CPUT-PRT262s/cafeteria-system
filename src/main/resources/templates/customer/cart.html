@@ -101,6 +101,8 @@
                 const description = item.description
                     ? `<p class="cart-item-description">${escapeHtml(item.description)}</p>`
                     : '';
+                const quantityLimit = Math.min(Number(item.availableQuantity), Number(item.maxOrderQuantity));
+                const atLimit = Number(item.quantity) >= quantityLimit;
                 return `<article class="cart-line">
                     <div class="cart-item-main">
                         ${image}
@@ -108,6 +110,7 @@
                             <h3>${escapeHtml(item.itemName)}</h3>
                             ${description}
                             <span class="cart-item-price">${money(item.price)} each</span>
+                            <span class="small text-muted d-block">${Number(item.availableQuantity)} available · maximum ${Number(item.maxOrderQuantity)} per order</span>
                             <button type="button" class="cart-action-button cart-remove" data-id="${escapeHtml(item.menuItemId)}">
                                 <i class="bi bi-trash3"></i> Remove
                             </button>
@@ -117,7 +120,7 @@
                         <div class="quantity-control" aria-label="Quantity">
                             <button type="button" data-action="minus" data-id="${escapeHtml(item.menuItemId)}" data-qty="${Number(item.quantity)}" aria-label="Decrease quantity">−</button>
                             <span>${Number(item.quantity)}</span>
-                            <button type="button" data-action="plus" data-id="${escapeHtml(item.menuItemId)}" data-qty="${Number(item.quantity)}" aria-label="Increase quantity">+</button>
+                            <button type="button" data-action="plus" data-id="${escapeHtml(item.menuItemId)}" data-qty="${Number(item.quantity)}" aria-label="Increase quantity" ${atLimit ? 'disabled' : ''}>+</button>
                         </div>
                         <div class="cart-item-subtotal">
                             <span>Subtotal</span>
