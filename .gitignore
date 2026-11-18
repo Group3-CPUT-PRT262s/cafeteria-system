@@ -55,5 +55,3 @@ HELP.md
 mvnw
 mvnw.cmd
 
-# ── email smtp ─────────────────────────────────────
-src/main/resources/application.properties
